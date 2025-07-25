@@ -14,54 +14,31 @@
     }
 
     #content{
-      position: absolute;
-      background-color: #BFBFBF;
+      display: block;
+      background-color: rgb(255, 255, 255);
+    }
+
+    #loader{
+      z-index: 100;
+      background-color: black;
       width: 100%;
       height: 100%;
+      left: 0;
+      top: 0;
+      position: absolute;
       display: flex;
+      align-items: center;
       justify-content: center;
-      border-radius: 25px;
-      overflow-y: scroll;
-      overflow-x: hidden;
     }
 
-    .contentHorizontal {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background-image: url(SE4X_DM_SOLO.jpg);
-      background-size: auto 100%;
-      background-position: top;
-      background-repeat: no-repeat;
-      /* display: none; */
+    #loader img{
+      display: inline;
+      width: 240px;
+      height: 143px;
+      animation: fade-in-down 2s ease;
     }
 
-    .contentVertical {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background-image: url(pion.jpg);
-      background-size: 100% auto;
-      background-position: top;
-      background-repeat: no-repeat;
-      /* display: none; */
-    }
-
-    .contentHorizontal #button{
-      position: absolute;
-      left: 16.5%;
-      top: 10.5%;
-      width: 12%;
-      height: 17%;
-    }
-
-    .contentVertical #button{
-      position: absolute;
-      left: 10.5%;
-      top: 6%;
-      width: 28.5%;
-      height: 9.5%;
-    }
+    @keyframes fade-in-down { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); }}
 
     .fade-out {
     	opacity: 0;
@@ -102,13 +79,10 @@
 <script type="module" src="app.js?v=20250522.1"></script>
 
 <body>
-  <div id="content">
-    <div id="innerContent">
-      <a id="button" href="https://zoomquilt.org/"></a>
-    </div>
-    <!-- <div id="contentVertical">
-      <a id="button" href="https://make-everything-ok.com/"></a>
-    </div> -->
-  </div>
+  <div id="loader">
+    <img src="images/oczyszczalnia.png">
+  </div>  
+  <canvas id="content">
+  </canvas>
 </body>
 </html>
