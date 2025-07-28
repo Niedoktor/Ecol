@@ -158,6 +158,8 @@ function continueBlendingOut(){
       map = vMap;
       cols = 3.5;
     }
+    if(selectedTile) selectedTile = undefined;
+    if(previousTile) previousTile = undefined;
     startBlendingIn();
   }
 }
@@ -213,8 +215,7 @@ function draw(){
       
       if(map[r][c].frame < effectSpeed - 1) {
         img = img.blended[map[r][c].frame - 1];
-      }
-
+      }else
       if(selectedTile && ((selectedTile.x == c && selectedTile.y == r) || img.src.indexOf("branza_" + selectedTile.n) != -1)){
         img = img.colorized[frame - 1];
       }else if(previousTile && ((previousTile.x == c && previousTile.y == r) || img.src.indexOf("branza_" + previousTile.n) != -1) && frame < effectSpeed - 1){
