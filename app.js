@@ -1,5 +1,4 @@
 const switchAspect = 1.5;
-const cols = 3.5;
 const borderSize = 0.5;
 const effectSpeed = 10;
 
@@ -11,6 +10,8 @@ let offsetY;
 let selectedTile;
 let previousTile;
 let frame;
+let map;
+let cols;
 
 const images = await Promise.all([
   LoadImage('images/empty.png', 0),
@@ -52,16 +53,28 @@ const images = await Promise.all([
   LoadImage('images/text_8.png', 37),
   LoadImage('images/text_2.png', 38),
   LoadImage('images/branza_8b_m.png', 39),
+  LoadImage('images/branza_2b.png', 40),
+  LoadImage('images/branza_5b_m.png', 41),
+  LoadImage('images/branza_10a.png', 42),
+  LoadImage('images/branza_8b.png', 43),
+  LoadImage('images/branza_5a_m.png', 44),
+  LoadImage('images/branza_3c_m.png', 45)
 ]);
 
-for(let r = 0; r < map.length; r++){
-  for(let c = 0; c < map[r].length; c++){
-    map[r][c] = { id: map[r][c], frame: 0 };
+for(let r = 0; r < vMap.length; r++){
+  for(let c = 0; c < vMap[r].length; c++){
+    vMap[r][c] = { id: vMap[r][c], frame: 0 };
+  }
+}
+
+for(let r = 0; r < hMap.length; r++){
+  for(let c = 0; c < hMap[r].length; c++){
+    hMap[r][c] = { id: hMap[r][c], frame: 0 };
   }
 }
 
 document.getElementById('loader').classList.add("fade-out");
-setTimeout(function() { document.getElementById('loader').style.display = 'none'; startBlending(); }, 500);
+setTimeout(function() { document.getElementById('loader').style.display = 'none'; startBlendingIn(); }, 500);
 
 const canvas = document.getElementById('content');
 canvas.onclick = (event) => {
@@ -86,16 +99,16 @@ function continueColorize(){
   }
 }
 
-function startBlending(){
+function startBlendingIn(){
   for(let r = 0; r < map.length; r++){
     for(let c = 0; c < map[r].length; c++){
       map[r][c].frame = -r;
     }
   }
-  continueBlending();
+  continueBlendingIn();
 }
 
-function continueBlending(){
+function continueBlendingIn(){
   let finish = true;
 
   for(let r = 0; r < map.length; r++){
@@ -109,7 +122,43 @@ function continueBlending(){
   draw();
 
   if(!finish){
-    setTimeout(() => { continueBlending(); }, 1000 / 60);
+    setTimeout(() => { continueBlendingIn(); }, 1000 / 60);
+  }
+}
+
+function startBlendingOut(){
+  for(let r = 0; r < map.length; r++){
+    for(let c = 0; c < map[r].length; c++){
+      map[r][c].frame = effectSpeed + r;
+    }
+  }
+  continueBlendingOut();
+}
+
+function continueBlendingOut(){
+  let finish = true;
+
+  for(let r = 0; r < map.length; r++){
+    for(let c = 0; c < map[r].length; c++){
+      if(map[r][c].frame > 0){
+        map[r][c].frame--;
+        finish = false;
+      }
+    }
+  }
+  draw();
+
+  if(!finish){
+    setTimeout(() => { continueBlendingOut(); }, 1000 / 60);
+  }else{
+    if(aspect >= switchAspect){
+      map = hMap;
+      cols = 6.5;
+    }else{
+      map = vMap;
+      cols = 3.5;
+    }
+    startBlendingIn();
   }
 }
 
@@ -124,12 +173,37 @@ function draw(){
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
+  const a = window.innerWidth / window.innerHeight;
+
+  if(aspect === undefined || (aspect >= switchAspect && a < switchAspect) || (aspect < switchAspect && a >= switchAspect)){
+    if(aspect !== undefined){
+      aspect = a;
+      startBlendingOut();
+      return;
+    }else{
+      if(a >= switchAspect){
+        map = hMap;
+        cols = 6.5;
+      }else{
+        map = vMap;
+        cols = 3.5;
+      }
+    }
+    aspect = a;
+  }
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   tileWidth = (canvas.width - cols * borderSize * 2) / cols;
   tileHeight = 143 * tileWidth / 280;
-  offsetX = -tileWidth * 3 / 4;
-  offsetY = -tileHeight / 2;
+
+  if(map === hMap){
+    offsetX = -tileWidth;
+    offsetY = -tileHeight / 2;
+  }else{
+    offsetX = -tileWidth * 3 / 4;
+    offsetY = -tileHeight / 2;
+  }
 
   for(let r = 0; r < map.length; r++){
     for(let c = 0; c < map[r].length; c++){
