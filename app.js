@@ -1,14 +1,16 @@
-let aspect;
 const switchAspect = 1.5;
 const cols = 3.5;
 const borderSize = 0.5;
+const effectSpeed = 10;
+
+let aspect;
 let tileWidth;
 let tileHeight;
 let offsetX;
 let offsetY;
 let selectedTile;
 let previousTile;
-let alpha;
+let frame;
 
 const images = await Promise.all([
   LoadImage('images/empty.png', 0),
@@ -52,31 +54,63 @@ const images = await Promise.all([
   LoadImage('images/branza_8b_m.png', 39),
 ]);
 
+for(let r = 0; r < map.length; r++){
+  for(let c = 0; c < map[r].length; c++){
+    map[r][c] = { id: map[r][c], frame: 0 };
+  }
+}
+
 document.getElementById('loader').classList.add("fade-out");
-setTimeout(function() { document.getElementById('loader').style.display = 'none' }, 500);
+setTimeout(function() { document.getElementById('loader').style.display = 'none'; startBlending(); }, 500);
 
 const canvas = document.getElementById('content');
 canvas.onclick = (event) => {
   const pos = getObjectFromScreen(event.x, event.y);
-  if(pos){
-    const img = images.find((img) => { return img.id == "img" + map[pos.y][pos.x] });
+  if(pos && (!selectedTile || pos.x != selectedTile.x || pos.y != selectedTile.y)){
+    const img = images.find((img) => { return img.id == "img" + map[pos.y][pos.x].id });
     if(img.src.indexOf("text_") == -1) return;
     previousTile = selectedTile;
     selectedTile = pos;
     selectedTile.n = img.src.substring(img.src.indexOf("text_") + 5, img.src.lastIndexOf("."));
-    alpha = 0;
-    startBlending();
+    frame = 0;
+    continueColorize();
+  }
+}
+
+function continueColorize(){
+  frame++;
+  draw();
+  
+  if(frame < effectSpeed - 1){
+    setTimeout(() => { continueColorize(); }, 1000 / 60);
   }
 }
 
 function startBlending(){
-  setTimeout(() => {
-    alpha += 1.0 / 10;
-    if(alpha < 1){
-      startBlending();
-    }else alpha = 1;
-    draw();
-  }, 1000 / 60)
+  for(let r = 0; r < map.length; r++){
+    for(let c = 0; c < map[r].length; c++){
+      map[r][c].frame = -r;
+    }
+  }
+  continueBlending();
+}
+
+function continueBlending(){
+  let finish = true;
+
+  for(let r = 0; r < map.length; r++){
+    for(let c = 0; c < map[r].length; c++){
+      if(map[r][c].frame < effectSpeed - 1){
+        map[r][c].frame++;
+        finish = false;
+      }
+    }
+  }
+  draw();
+
+  if(!finish){
+    setTimeout(() => { continueBlending(); }, 1000 / 60);
+  }
 }
 
 function onWindowResize() {
@@ -99,12 +133,20 @@ function draw(){
 
   for(let r = 0; r < map.length; r++){
     for(let c = 0; c < map[r].length; c++){
-      let img = images.find((img) => { return img.id == "img" + map[r][c] });
-      if(selectedTile && ((selectedTile.x == c && selectedTile.y == r) || img.src.indexOf("branza_" + selectedTile.n) != -1)){
-        img = colorize(img, 0, 0.8, 1, alpha);
-      }else if(previousTile && ((previousTile.x == c && previousTile.y == r) || img.src.indexOf("branza_" + previousTile.n) != -1)){
-        img = colorize(img, 0, 0.8, 1, 1 - alpha);
+      if(map[r][c].frame < 1) continue;
+
+      let img = images.find((img) => { return img.id == "img" + map[r][c].id });
+      
+      if(map[r][c].frame < effectSpeed - 1) {
+        img = img.blended[map[r][c].frame - 1];
       }
+
+      if(selectedTile && ((selectedTile.x == c && selectedTile.y == r) || img.src.indexOf("branza_" + selectedTile.n) != -1)){
+        img = img.colorized[frame - 1];
+      }else if(previousTile && ((previousTile.x == c && previousTile.y == r) || img.src.indexOf("branza_" + previousTile.n) != -1) && frame < effectSpeed - 1){
+        img = img.colorized[effectSpeed - frame - 2];
+      }
+      
       const imgHeight = img.height * tileWidth / img.width;
       const x = offsetX + borderSize + c * (tileWidth + borderSize * 2) + r % 2 * (tileWidth / 2 + borderSize);
       const y = offsetY + borderSize + tileHeight + r * (tileHeight / 2 + borderSize);
@@ -113,25 +155,49 @@ function draw(){
   }
 }
 
-function colorize(image, r, g, b, a) {
-  const offscreen = new OffscreenCanvas(image.width, image.height);
-  const ctx = offscreen.getContext("2d");
+function colorize(image, r, g, b, frames) {
+  image.colorized = [];
 
-  ctx.drawImage(image, 0, 0);
+  for(let f = 1; f < frames; f++){
+    const offscreen = new OffscreenCanvas(image.width, image.height);
+    const ctx = offscreen.getContext("2d");
 
-  const imageData = ctx.getImageData(0, 0, image.width, image.height);
+    ctx.drawImage(image, 0, 0);
 
-  for (let i = 0; i < imageData.data.length; i += 4) {
-    let lightness = parseInt((imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3);
+    const imageData = ctx.getImageData(0, 0, image.width, image.height);
+    const a = f / (frames - 1);
 
-    imageData.data[i + 0] = imageData.data[i] + (lightness * r - imageData.data[i]) * a;
-    imageData.data[i + 1] = imageData.data[i + 1] + (lightness * g - imageData.data[i + 1]) * a;
-    imageData.data[i + 2] = imageData.data[i + 2] + (lightness * b - imageData.data[i + 2]) * a;
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      const lightness = parseInt((imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3);
+      imageData.data[i + 0] = imageData.data[i] + (lightness * r - imageData.data[i]) * a;
+      imageData.data[i + 1] = imageData.data[i + 1] + (lightness * g - imageData.data[i + 1]) * a;
+      imageData.data[i + 2] = imageData.data[i + 2] + (lightness * b - imageData.data[i + 2]) * a;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    image.colorized.push(offscreen);
   }
+}
 
-  ctx.putImageData(imageData, 0, 0);
+function blend(image, frames) {
+  image.blended = [];
 
-  return offscreen;
+  for(let f = 1; f < frames - 1; f++){
+    const offscreen = new OffscreenCanvas(image.width, image.height);
+    const ctx = offscreen.getContext("2d");
+
+    ctx.drawImage(image, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, image.width, image.height);
+    const a = f / (frames - 1);
+
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      imageData.data[i + 3] *= a;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    image.blended.push(offscreen);
+  }
 }
 
 function checkLine(p1, p2){
@@ -166,7 +232,14 @@ function getObjectFromScreen(x, y){
 function LoadImage(src, id) {
   return new Promise(function (resolve) {
     const img = new Image();
-    img.onload = () => resolve(img);
+    img.onload = () => {
+      if(img.src.indexOf("branza_") != -1 || img.src.indexOf("text_") != -1){
+        colorize(img, 0, 0.8, 1, effectSpeed);
+      }
+      blend(img, effectSpeed);
+      if(img.src.indexOf("text_") == -1) document.getElementById("loaderImg").src = img.src;
+      resolve(img);
+    }
     img.src = src + '?v=20250725';
     img.draggable = "false";
     img.id = "img" + id;
