@@ -1,4 +1,4 @@
-const switchAspectFactor = 1.5;
+const switchAspectFactor = 1.75;
 const borderSize = 0.5;
 const effectSpeed = 10;
 
