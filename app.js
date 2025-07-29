@@ -76,8 +76,9 @@ for(let r = 0; r < hMap.length; r++){
   }
 }
 
+document.getElementById("content").style.backgroundColor = "white";
 document.getElementById('loader').classList.add("fade-out");
-setTimeout(function() { document.getElementById('loader').style.display = 'none'; startBlendingIn(); }, 500);
+setTimeout(function() { document.getElementById('loader').style.display = 'none'; switchAspect(); startBlendingIn(); }, 500);
 
 const canvas = document.getElementById('content');
 canvas.onclick = (event) => {
@@ -113,8 +114,8 @@ canvas.onmousemove = (event) => {
     mouseMoved = true;
   }
   offsetY += event.y - lastMousePos.y;
-  if(offsetY > -tileHeight / 2) offsetY = -tileHeight / 2;
   if(offsetY < -map.length * tileHeight / 2 + canvas.height) offsetY = -map.length * tileHeight / 2 + canvas.height;
+  if(offsetY > -tileHeight / 2) offsetY = -tileHeight / 2;
   draw();
   lastMousePos = { x: event.x, y: event.y };
 }
@@ -180,21 +181,23 @@ function continueBlendingOut(){
   if(!finish){
     setTimeout(() => { continueBlendingOut(); }, 1000 / 60);
   }else{
-    if(aspect >= switchAspect){
-      map = hMap;
-      cols = 6.5;
-    }else{
-      map = vMap;
-      cols = 3.5;
-    }
+    switchAspect();
     if(selectedTile) selectedTile = undefined;
     if(previousTile) previousTile = undefined;
     startBlendingIn();
   }
 }
 
-function switchAspect(a) {
-  if(a >= switchAspect){
+function switchAspect() {
+  const a = window.innerWidth / window.innerHeight;
+
+  if(aspect !== undefined && ((aspect >= switchAspectFactor && a < switchAspectFactor) || (aspect < switchAspectFactor && a >= switchAspectFactor))){
+    aspect = a;
+    startBlendingOut();
+    return;
+  }
+
+  if(a >= switchAspectFactor){
     map = hMap;
     cols = 6.5;
   }else{
@@ -205,6 +208,9 @@ function switchAspect(a) {
   aspect = a;
 
   const canvas = document.getElementById('content');
+
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
   tileWidth = (canvas.width - cols * borderSize * 2) / cols;
   tileHeight = 143 * tileWidth / 280;
@@ -219,27 +225,13 @@ function switchAspect(a) {
 }
 
 function onWindowResize() {
+  switchAspect();
   draw();
 }
 
 function draw(){
   const canvas = document.getElementById('content');
   const ctx = canvas.getContext('2d')
-
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-
-  const a = window.innerWidth / window.innerHeight;
-
-  if(aspect === undefined || (aspect >= switchAspect && a < switchAspect) || (aspect < switchAspect && a >= switchAspect)){
-    if(aspect !== undefined){
-      aspect = a;
-      startBlendingOut();
-      return;
-    }else{
-      switchAspect(a);
-    }
-  }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -358,7 +350,3 @@ function LoadImage(src, id) {
 }
 
 window.addEventListener('resize', onWindowResize, false );
-
-window.onload = function() {
-  onWindowResize();
-}
