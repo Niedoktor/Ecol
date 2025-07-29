@@ -1,4 +1,4 @@
-const switchAspect = 1.5;
+const switchAspectFactor = 1.5;
 const borderSize = 0.5;
 const effectSpeed = 10;
 
@@ -12,6 +12,9 @@ let previousTile;
 let frame;
 let map;
 let cols;
+let mouseDown;
+let lastMousePos;
+let mouseMoved;
 
 const images = await Promise.all([
   LoadImage('images/empty.png', 0),
@@ -78,16 +81,42 @@ setTimeout(function() { document.getElementById('loader').style.display = 'none'
 
 const canvas = document.getElementById('content');
 canvas.onclick = (event) => {
-  const pos = getObjectFromScreen(event.x, event.y);
-  if(pos && (!selectedTile || pos.x != selectedTile.x || pos.y != selectedTile.y)){
-    const img = images.find((img) => { return img.id == "img" + map[pos.y][pos.x].id });
-    if(img.src.indexOf("text_") == -1) return;
-    previousTile = selectedTile;
-    selectedTile = pos;
-    selectedTile.n = img.src.substring(img.src.indexOf("text_") + 5, img.src.lastIndexOf("."));
-    frame = 0;
-    continueColorize();
+}
+
+canvas.onmousedown = (event) => {
+  mouseDown = true;
+  mouseMoved = false;
+  lastMousePos = { x: event.x, y: event.y };
+}
+
+canvas.onmouseup = (event) => {
+  mouseDown = false;
+  if(!mouseMoved){
+    const pos = getObjectFromScreen(event.x, event.y);
+    if(pos && (!selectedTile || pos.x != selectedTile.x || pos.y != selectedTile.y)){
+      const img = images.find((img) => { return img.id == "img" + map[pos.y][pos.x].id });
+      if(img.src.indexOf("text_") == -1) return;
+      previousTile = selectedTile;
+      selectedTile = pos;
+      selectedTile.n = img.src.substring(img.src.indexOf("text_") + 5, img.src.lastIndexOf("."));
+      frame = 0;
+      continueColorize();
+    }
   }
+}
+
+canvas.onmousemove = (event) => {
+  if(!mouseDown) return;
+  if(lastMousePos.x == event.x && lastMousePos.y == event.y) return;
+
+  if(Math.abs(lastMousePos.x - event.x) > 3 || Math.abs(lastMousePos.y - event.y) > 3){
+    mouseMoved = true;
+  }
+  offsetY += event.y - lastMousePos.y;
+  if(offsetY > -tileHeight / 2) offsetY = -tileHeight / 2;
+  if(offsetY < -map.length * tileHeight / 2 + canvas.height) offsetY = -map.length * tileHeight / 2 + canvas.height;
+  draw();
+  lastMousePos = { x: event.x, y: event.y };
 }
 
 function continueColorize(){
@@ -164,6 +193,31 @@ function continueBlendingOut(){
   }
 }
 
+function switchAspect(a) {
+  if(a >= switchAspect){
+    map = hMap;
+    cols = 6.5;
+  }else{
+    map = vMap;
+    cols = 3.5;
+  }
+
+  aspect = a;
+
+  const canvas = document.getElementById('content');
+
+  tileWidth = (canvas.width - cols * borderSize * 2) / cols;
+  tileHeight = 143 * tileWidth / 280;
+
+  if(map === hMap){
+    offsetX = -tileWidth;
+    offsetY = -tileHeight / 2;
+  }else{
+    offsetX = -tileWidth * 3 / 4;
+    offsetY = -tileHeight / 2;
+  }
+}
+
 function onWindowResize() {
   draw();
 }
@@ -183,29 +237,11 @@ function draw(){
       startBlendingOut();
       return;
     }else{
-      if(a >= switchAspect){
-        map = hMap;
-        cols = 6.5;
-      }else{
-        map = vMap;
-        cols = 3.5;
-      }
+      switchAspect(a);
     }
-    aspect = a;
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  tileWidth = (canvas.width - cols * borderSize * 2) / cols;
-  tileHeight = 143 * tileWidth / 280;
-
-  if(map === hMap){
-    offsetX = -tileWidth;
-    offsetY = -tileHeight / 2;
-  }else{
-    offsetX = -tileWidth * 3 / 4;
-    offsetY = -tileHeight / 2;
-  }
 
   for(let r = 0; r < map.length; r++){
     for(let c = 0; c < map[r].length; c++){
