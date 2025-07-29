@@ -7,14 +7,15 @@ let tileWidth;
 let tileHeight;
 let offsetX;
 let offsetY;
-let selectedTile;
-let previousTile;
+let selectedGroup;
+let previousGroup;
 let frame;
 let map;
 let cols;
 let mouseDown;
 let lastMousePos;
 let mouseMoved;
+let redraw = true;
 
 const images = await Promise.all([
   LoadImage('images/empty.png', 0),
@@ -66,23 +67,30 @@ const images = await Promise.all([
 
 for(let r = 0; r < vMap.length; r++){
   for(let c = 0; c < vMap[r].length; c++){
-    vMap[r][c] = { id: vMap[r][c], frame: 0 };
+    vMap[r][c] = { id: vMap[r][c], blendFrame: 0, clickFrame: effectSpeed };
   }
 }
 
 for(let r = 0; r < hMap.length; r++){
   for(let c = 0; c < hMap[r].length; c++){
-    hMap[r][c] = { id: hMap[r][c], frame: 0 };
+    hMap[r][c] = { id: hMap[r][c], blendFrame: 0, clickFrame: effectSpeed };
   }
 }
 
-document.getElementById("content").style.backgroundColor = "white";
-document.getElementById('loader').classList.add("fade-out");
-setTimeout(function() { document.getElementById('loader').style.display = 'none'; switchAspect(); startBlendingIn(); }, 500);
-
+switchAspect();
 const canvas = document.getElementById('content');
-canvas.onclick = (event) => {
-}
+canvas.style.backgroundColor = "white";
+
+document.getElementById('loader').classList.add("fade-out");
+setTimeout(function() {
+  document.getElementById('loader').style.display = 'none';
+  startBlendingIn();
+  setInterval(() => {
+    if(redraw) {
+      draw();
+      redraw = false;
+    }}, 1000 / 60);
+}, 500);
 
 canvas.onmousedown = (event) => {
   mouseDown = true;
@@ -93,15 +101,11 @@ canvas.onmousedown = (event) => {
 canvas.onmouseup = (event) => {
   mouseDown = false;
   if(!mouseMoved){
-    const pos = getObjectFromScreen(event.x, event.y);
-    if(pos && (!selectedTile || pos.x != selectedTile.x || pos.y != selectedTile.y)){
-      const img = images.find((img) => { return img.id == "img" + map[pos.y][pos.x].id });
-      if(img.src.indexOf("text_") == -1) return;
-      previousTile = selectedTile;
-      selectedTile = pos;
-      selectedTile.n = img.src.substring(img.src.indexOf("text_") + 5, img.src.lastIndexOf("."));
-      frame = 0;
-      continueColorize();
+    const tile = getObjectFromScreen(event.x, event.y);
+    if(tile){
+      startClick(tile);
+      startColorize(tile);
+      redraw = true;
     }
   }
 }
@@ -116,14 +120,41 @@ canvas.onmousemove = (event) => {
   offsetY += event.y - lastMousePos.y;
   if(offsetY < -map.length * tileHeight / 2 + canvas.height) offsetY = -map.length * tileHeight / 2 + canvas.height;
   if(offsetY > -tileHeight / 2) offsetY = -tileHeight / 2;
-  draw();
   lastMousePos = { x: event.x, y: event.y };
+  redraw = true;
+}
+
+function startClick(tile){
+  tile.clickFrame = 0;
+  continueClick(tile);
+}
+
+function continueClick(tile){
+  tile.clickFrame++;
+  redraw = true;
+
+  if(tile.clickFrame < effectSpeed){
+    setTimeout(() => { continueClick(tile); }, 1000 / 60);
+  }
+}
+
+function startColorize(tile){
+   const img = images.find((img) => { return img.id == "img" + tile.id });
+  if(img.src.indexOf("text_") == -1 && img.src.indexOf("branza_") == -1) return;
+  previousGroup = selectedGroup;
+  if(img.src.indexOf("text_") != -1)
+    selectedGroup = parseInt(img.src.substring(img.src.indexOf("text_") + 5, img.src.lastIndexOf(".")));
+  else{
+    selectedGroup = parseInt(img.src.substring(img.src.indexOf("branza_") + 7, img.src.lastIndexOf(".")));
+  }
+  frame = 0;
+  continueColorize();
 }
 
 function continueColorize(){
   frame++;
-  draw();
-  
+  redraw = true;
+
   if(frame < effectSpeed - 1){
     setTimeout(() => { continueColorize(); }, 1000 / 60);
   }
@@ -132,7 +163,7 @@ function continueColorize(){
 function startBlendingIn(){
   for(let r = 0; r < map.length; r++){
     for(let c = 0; c < map[r].length; c++){
-      map[r][c].frame = -r;
+      map[r][c].blendFrame = -r;
     }
   }
   continueBlendingIn();
@@ -143,13 +174,14 @@ function continueBlendingIn(){
 
   for(let r = 0; r < map.length; r++){
     for(let c = 0; c < map[r].length; c++){
-      if(map[r][c].frame < effectSpeed - 1){
-        map[r][c].frame++;
+      if(map[r][c].blendFrame < effectSpeed - 1){
+        map[r][c].blendFrame++;
         finish = false;
       }
     }
   }
-  draw();
+
+  redraw = true;
 
   if(!finish){
     setTimeout(() => { continueBlendingIn(); }, 1000 / 60);
@@ -159,7 +191,7 @@ function continueBlendingIn(){
 function startBlendingOut(){
   for(let r = 0; r < map.length; r++){
     for(let c = 0; c < map[r].length; c++){
-      map[r][c].frame = effectSpeed + r;
+      map[r][c].blendFrame = effectSpeed + r;
     }
   }
   continueBlendingOut();
@@ -170,20 +202,21 @@ function continueBlendingOut(){
 
   for(let r = 0; r < map.length; r++){
     for(let c = 0; c < map[r].length; c++){
-      if(map[r][c].frame > 0){
-        map[r][c].frame--;
+      if(map[r][c].blendFrame > 0){
+        map[r][c].blendFrame--;
         finish = false;
       }
     }
   }
-  draw();
+
+  redraw = true;
 
   if(!finish){
     setTimeout(() => { continueBlendingOut(); }, 1000 / 60);
   }else{
     switchAspect();
-    if(selectedTile) selectedTile = undefined;
-    if(previousTile) previousTile = undefined;
+    if(selectedGroup) selectedGroup = undefined;
+    if(previousGroup) previousGroup = undefined;
     startBlendingIn();
   }
 }
@@ -226,7 +259,7 @@ function switchAspect() {
 
 function onWindowResize() {
   switchAspect();
-  draw();
+  redraw = true;
 }
 
 function draw(){
@@ -237,23 +270,37 @@ function draw(){
 
   for(let r = 0; r < map.length; r++){
     for(let c = 0; c < map[r].length; c++){
-      if(map[r][c].frame < 1) continue;
+      if(map[r][c].blendFrame < 1) continue;
 
       let img = images.find((img) => { return img.id == "img" + map[r][c].id });
       
-      if(map[r][c].frame < effectSpeed - 1) {
-        img = img.blended[map[r][c].frame - 1];
+      if(map[r][c].blendFrame < effectSpeed - 1) {
+        img = img.blended[map[r][c].blendFrame - 1];
       }else
-      if(selectedTile && ((selectedTile.x == c && selectedTile.y == r) || img.src.indexOf("branza_" + selectedTile.n) != -1)){
+      if(selectedGroup && img.src.indexOf("_" + selectedGroup) != -1){
         img = img.colorized[frame - 1];
-      }else if(previousTile && ((previousTile.x == c && previousTile.y == r) || img.src.indexOf("branza_" + previousTile.n) != -1) && frame < effectSpeed - 1){
+      }else if(previousGroup && img.src.indexOf("_" + previousGroup) != -1 && frame < effectSpeed - 1){
         img = img.colorized[effectSpeed - frame - 2];
       }
       
-      const imgHeight = img.height * tileWidth / img.width;
-      const x = offsetX + borderSize + c * (tileWidth + borderSize * 2) + r % 2 * (tileWidth / 2 + borderSize);
-      const y = offsetY + borderSize + tileHeight + r * (tileHeight / 2 + borderSize);
-      ctx.drawImage(img, x, y - imgHeight, tileWidth, imgHeight);
+      let imgWidth = tileWidth;
+      let imgHeight = img.height * imgWidth / img.width;
+      let x = offsetX + borderSize + c * (tileWidth + borderSize * 2) + r % 2 * (tileWidth / 2 + borderSize);
+      let y = offsetY + borderSize + tileHeight + r * (tileHeight / 2 + borderSize);
+
+      if(map[r][c].clickFrame < effectSpeed){
+        let downSize;
+        if(map[r][c].clickFrame < effectSpeed / 2)
+          downSize = 0.2 * map[r][c].clickFrame / (effectSpeed / 2 - 1);
+        else
+          downSize = 0.2 * (effectSpeed - map[r][c].clickFrame) / (effectSpeed / 2 - 1);
+        x += tileWidth * downSize / 2;
+        y -= tileHeight * downSize / 2;
+        imgWidth -= imgWidth * downSize;
+        imgHeight -= imgHeight * downSize;
+      }
+
+      ctx.drawImage(img, x, y - imgHeight, imgWidth, imgHeight);
     }
   }
 }
@@ -271,7 +318,10 @@ function colorize(image, r, g, b, frames) {
     const a = f / (frames - 1);
 
     for (let i = 0; i < imageData.data.length; i += 4) {
-      const lightness = parseInt((imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3);
+      let lightness = parseInt((imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3);
+      let bup = (255 - lightness) * 0.3;
+      lightness += bup;
+
       imageData.data[i + 0] = imageData.data[i] + (lightness * r - imageData.data[i]) * a;
       imageData.data[i + 1] = imageData.data[i + 1] + (lightness * g - imageData.data[i + 1]) * a;
       imageData.data[i + 2] = imageData.data[i + 2] + (lightness * b - imageData.data[i + 2]) * a;
@@ -324,7 +374,7 @@ function getObjectFromScreen(x, y){
         && checkLine(p2, p3)(x) > y
         && checkLine(p3, p4)(x) > y
         && checkLine(p4, p1)(x) < y){
-          res = { x: c, y: r };
+          res = map[r][c];
       }
     }
   }
