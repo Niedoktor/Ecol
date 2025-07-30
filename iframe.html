@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>SimEcol</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+    }
+
+    #content{
+      background-color: black;
+      text-align: center;
+    }
+
+    iframe{
+      width: 50%;
+      height: 70%;
+      border: 0;
+    }
+
+    span{
+      display: block;
+      color: white;
+      font-size: 18pt;
+      padding-top: 10%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="content">
+    <span>Test osadzenia w iframe</span>
+    <iframe src="index.html">
+    </iframe>
+  </div>
+  <script>
+    const content = document.getElementById("content");
+    content.style.width = window.innerWidth + "px";
+    content.style.height = window.innerHeight + "px";
+  </script>
+</body>
+</html>

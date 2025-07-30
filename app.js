@@ -151,11 +151,15 @@ function continueClick(tile){
 
   if(tile.clickFrame < effectSpeed){
     setTimeout(() => { continueClick(tile); }, 1000 / 60);
+  }else{
+    if(previousGroup === selectedGroup){
+      window.open(links[selectedGroup], "blank");
+    }
   }
 }
 
 function startColorize(tile){
-   const img = images.find((img) => { return img.id == "img" + tile.id });
+  const img = images.find((img) => { return img.id == "img" + tile.id });
   if(img.src.indexOf("text_") == -1 && img.src.indexOf("branza_") == -1) return;
   previousGroup = selectedGroup;
   if(img.src.indexOf("text_") != -1)
@@ -553,7 +557,7 @@ function LoadImage(src, id) {
       if(img.src.indexOf("branza_") != -1) document.getElementById("loaderImg").src = img.src;
       resolve(img);
     }
-    img.src = src + '?v=20250725';
+    img.src = src;// + '?v=20250725';
     img.draggable = "false";
     img.id = "img" + id;
   });
