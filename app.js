@@ -21,6 +21,7 @@ let ship = {
   initSpeed: 0.001
 }
 let cars = [];
+let plane = {};
 
 const images = await Promise.all([
   LoadImage('images/empty.png', 0),
@@ -74,7 +75,11 @@ const images = await Promise.all([
   LoadImage('images/car_r3.png', 49),
   LoadImage('images/car_l1.png', 50),
   LoadImage('images/car_l2.png', 51),
-  LoadImage('images/car_l3.png', 52)
+  LoadImage('images/car_l3.png', 52),
+  LoadImage('images/samolot_ur.png', 53),
+  LoadImage('images/samolot_dr.png', 54),
+  LoadImage('images/samolot_dl.png', 55),
+  LoadImage('images/samolot_ul.png', 56)
 ]);
 
 for(let r = 0; r < vMap.length; r++){
@@ -268,6 +273,8 @@ function switchAspect() {
   }
 
   delete ship.pos;
+  cars = [];
+  delete plane.pos;
 }
 
 function onWindowResize() {
@@ -329,6 +336,7 @@ function draw(){
 
   drawShip(mainCtx);
   drawCars(mainCtx);
+  drawPlane(mainCtx);
 }
 
 function drawCars(ctx){
@@ -347,7 +355,8 @@ function drawCars(ctx){
     ctx.drawImage(car.img, x, y - h, w, h);
 
     if((car.speed > 0 && (x > canvas.width || y - h > canvas.height))
-      || (car.speed < 0 && (x + w < 0 || y < 0))){
+      || (car.speed < 0 && (x + w < 0 || y < 0))
+      || (map === hMap && car.speed > 0 && x > canvas.width * 0.35)){
       cars.splice(c, 1);
     }else c++;
   }
@@ -362,10 +371,10 @@ function addCar(){
 
   if(car.speed > 0){
     car.img = images.find((img) => { return img.id == "img" + (47 + r) });
-    car.pos = map == vMap ? getScreenPositionFromGrid(0.58, 4.1) : getScreenPositionFromGrid(-0.12, 3.36);
+    car.pos = map == vMap ? getScreenPositionFromGrid(0.58, 4.1) : getScreenPositionFromGrid(0.58, 3.1);
   }else{
     car.img = images.find((img) => { return img.id == "img" + (50 + r) });
-    car.pos = map == vMap ? getScreenPositionFromGrid(3.75, 10.8) : getScreenPositionFromGrid(-0.12, 3.36);
+    car.pos = map == vMap ? getScreenPositionFromGrid(3.75, 10.8) : getScreenPositionFromGrid(2.75, 7.2);
   }
   
   cars.push(car);
@@ -412,6 +421,42 @@ function drawShip(ctx){
   }
   if(ship.speed < ship.initSpeed && ship.loaded){
     ship.speed += ship.initSpeed * 0.001;
+  }
+}
+
+function drawPlane(ctx){
+  if(!plane.pos && Math.random() > 0.01) return;
+
+  if(!plane.pos){
+    plane.speed = {
+      x: 0.01 * (1 - 2 * Math.round(Math.random())),
+      y: 0.01 * (1 - 2 * Math.round(Math.random())),      
+    }
+    let id;
+    if(plane.speed.x > 0 && plane.speed.y < 0) id = "img53";
+    if(plane.speed.x > 0 && plane.speed.y > 0) id = "img54";
+    if(plane.speed.x < 0 && plane.speed.y > 0) id = "img55";
+    if(plane.speed.x < 0 && plane.speed.y < 0) id = "img56";
+    plane.img = images.find((img) => { return img.id == id });
+    plane.w = plane.img.width * tileWidth / 280;
+    plane.h = plane.img.height * plane.w / plane.img.width;
+    plane.pos = {
+      x: plane.speed.x > 0 ? -plane.w : canvas.width,
+      y: plane.speed.y < 0 ? canvas.height / 2 + Math.random() * canvas.height / 2 : Math.random() * canvas.height / 2
+    }
+  }
+
+  plane.pos.x += tileWidth * plane.speed.x;
+  plane.pos.y += tileHeight * plane.speed.y;
+
+  let x = offsetX + plane.pos.x;
+  let y = offsetY + plane.pos.y;
+
+  ctx.drawImage(plane.img, x, y - plane.h, plane.w, plane.h);
+
+  if(x > canvas.width || y < 0 || x + plane.w < 0 || y - plane.h > canvas.height){
+     delete plane.pos;
+     return;
   }
 }
 
