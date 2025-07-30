@@ -20,6 +20,7 @@ let redraw = true;
 let ship = {
   initSpeed: 0.001
 }
+let cars = [];
 
 const images = await Promise.all([
   LoadImage('images/empty.png', 0),
@@ -67,7 +68,13 @@ const images = await Promise.all([
   LoadImage('images/branza_8b.png', 43),
   LoadImage('images/branza_5a_m.png', 44),
   LoadImage('images/branza_3c_m.png', 45),
-  LoadImage('images/statek2.png', 46)
+  LoadImage('images/statek2.png', 46),
+  LoadImage('images/car_r1.png', 47),
+  LoadImage('images/car_r2.png', 48),
+  LoadImage('images/car_r3.png', 49),
+  LoadImage('images/car_l1.png', 50),
+  LoadImage('images/car_l2.png', 51),
+  LoadImage('images/car_l3.png', 52)
 ]);
 
 for(let r = 0; r < vMap.length; r++){
@@ -93,6 +100,7 @@ setTimeout(function() {
   setInterval(() => {
     draw();
   }, 1000 / 60);
+  addCar();
 }, 500);
 
 canvas.onmousedown = (event) => {
@@ -320,6 +328,49 @@ function draw(){
   mainCtx.drawImage(offScreenCanvas, 0, 0);
 
   drawShip(mainCtx);
+  drawCars(mainCtx);
+}
+
+function drawCars(ctx){
+  let c = 0;
+  while(c < cars.length){
+    const car = cars[c];
+
+    car.pos.x += tileWidth * car.speed;
+    car.pos.y += tileHeight * car.speed;
+
+    let x = offsetX + car.pos.x;
+    let y = offsetY + car.pos.y;
+    let w = car.img.width * tileWidth / 280;
+    let h = car.img.height * w / car.img.width;
+
+    ctx.drawImage(car.img, x, y - h, w, h);
+
+    if((car.speed > 0 && (x > canvas.width || y - h > canvas.height))
+      || (car.speed < 0 && (x + w < 0 || y < 0))){
+      cars.splice(c, 1);
+    }else c++;
+  }
+}
+
+function addCar(){
+  const car = {
+    speed: 0.01 * (1 - 2 * Math.round(Math.random()))
+  };
+
+  const r = Math.floor(Math.random() * 3);
+
+  if(car.speed > 0){
+    car.img = images.find((img) => { return img.id == "img" + (47 + r) });
+    car.pos = map == vMap ? getScreenPositionFromGrid(0.58, 4.1) : getScreenPositionFromGrid(-0.12, 3.36);
+  }else{
+    car.img = images.find((img) => { return img.id == "img" + (50 + r) });
+    car.pos = map == vMap ? getScreenPositionFromGrid(3.75, 10.8) : getScreenPositionFromGrid(-0.12, 3.36);
+  }
+  
+  cars.push(car);
+
+  setTimeout(addCar, 500 + Math.random() * 2000);
 }
 
 function drawShip(ctx){
