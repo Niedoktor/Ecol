@@ -1,6 +1,7 @@
 const switchAspectFactor = 1.75;
 const borderSize = 0.5;
 const effectSpeed = 10;
+const offScreenCanvas = new OffscreenCanvas(0, 0);
 
 let aspect;
 let tileWidth;
@@ -16,6 +17,9 @@ let mouseDown;
 let lastMousePos;
 let mouseMoved;
 let redraw = true;
+let ship = {
+  initSpeed: 0.001
+}
 
 const images = await Promise.all([
   LoadImage('images/empty.png', 0),
@@ -62,7 +66,8 @@ const images = await Promise.all([
   LoadImage('images/branza_10a.png', 42),
   LoadImage('images/branza_8b.png', 43),
   LoadImage('images/branza_5a_m.png', 44),
-  LoadImage('images/branza_3c_m.png', 45)
+  LoadImage('images/branza_3c_m.png', 45),
+  LoadImage('images/statek2.png', 46)
 ]);
 
 for(let r = 0; r < vMap.length; r++){
@@ -86,10 +91,8 @@ setTimeout(function() {
   document.getElementById('loader').style.display = 'none';
   startBlendingIn();
   setInterval(() => {
-    if(redraw) {
-      draw();
-      redraw = false;
-    }}, 1000 / 60);
+    draw();
+  }, 1000 / 60);
 }, 500);
 
 canvas.onmousedown = (event) => {
@@ -255,6 +258,8 @@ function switchAspect() {
     offsetX = -tileWidth * 3 / 4;
     offsetY = -tileHeight / 2;
   }
+
+  delete ship.pos;
 }
 
 function onWindowResize() {
@@ -263,46 +268,98 @@ function onWindowResize() {
 }
 
 function draw(){
+  const ctx = offScreenCanvas.getContext('2d');
   const canvas = document.getElementById('content');
-  const ctx = canvas.getContext('2d')
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if(redraw){
+    offScreenCanvas.width = canvas.width;
+    offScreenCanvas.height = canvas.height;
+    
+    ctx.fillStyle = canvas.style.backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  for(let r = 0; r < map.length; r++){
-    for(let c = 0; c < map[r].length; c++){
-      if(map[r][c].blendFrame < 1) continue;
+    for(let r = 0; r < map.length; r++){
+      for(let c = 0; c < map[r].length; c++){
+        if(map[r][c].blendFrame < 1) continue;
 
-      let img = images.find((img) => { return img.id == "img" + map[r][c].id });
-      
-      if(map[r][c].blendFrame < effectSpeed - 1) {
-        img = img.blended[map[r][c].blendFrame - 1];
-      }else
-      if(selectedGroup && img.src.indexOf("_" + selectedGroup) != -1){
-        img = img.colorized[frame - 1];
-      }else if(previousGroup && img.src.indexOf("_" + previousGroup) != -1 && frame < effectSpeed - 1){
-        img = img.colorized[effectSpeed - frame - 2];
+        let img = images.find((img) => { return img.id == "img" + map[r][c].id });
+        
+        if(map[r][c].blendFrame < effectSpeed - 1) {
+          img = img.blended[map[r][c].blendFrame - 1];
+        }else
+        if(selectedGroup && img.src.indexOf("_" + selectedGroup) != -1){
+          img = img.colorized[frame - 1];
+        }else if(previousGroup && img.src.indexOf("_" + previousGroup) != -1 && frame < effectSpeed - 1){
+          img = img.colorized[effectSpeed - frame - 2];
+        }
+        
+        let imgWidth = tileWidth;
+        let imgHeight = img.height * imgWidth / img.width;
+        let x = offsetX + borderSize + c * (tileWidth + borderSize * 2) + r % 2 * (tileWidth / 2 + borderSize);
+        let y = offsetY + borderSize + tileHeight + r * (tileHeight / 2 + borderSize);
+
+        if(map[r][c].clickFrame < effectSpeed){
+          let downSize;
+          if(map[r][c].clickFrame < effectSpeed / 2)
+            downSize = 0.2 * map[r][c].clickFrame / (effectSpeed / 2 - 1);
+          else
+            downSize = 0.2 * (effectSpeed - map[r][c].clickFrame) / (effectSpeed / 2 - 1);
+          x += tileWidth * downSize / 2;
+          y -= tileHeight * downSize / 2;
+          imgWidth -= imgWidth * downSize;
+          imgHeight -= imgHeight * downSize;
+        }
+
+        ctx.drawImage(img, x, y - imgHeight, imgWidth, imgHeight);
       }
-      
-      let imgWidth = tileWidth;
-      let imgHeight = img.height * imgWidth / img.width;
-      let x = offsetX + borderSize + c * (tileWidth + borderSize * 2) + r % 2 * (tileWidth / 2 + borderSize);
-      let y = offsetY + borderSize + tileHeight + r * (tileHeight / 2 + borderSize);
+    }
+    redraw = false;
+  }
 
-      if(map[r][c].clickFrame < effectSpeed){
-        let downSize;
-        if(map[r][c].clickFrame < effectSpeed / 2)
-          downSize = 0.2 * map[r][c].clickFrame / (effectSpeed / 2 - 1);
-        else
-          downSize = 0.2 * (effectSpeed - map[r][c].clickFrame) / (effectSpeed / 2 - 1);
-        x += tileWidth * downSize / 2;
-        y -= tileHeight * downSize / 2;
-        imgWidth -= imgWidth * downSize;
-        imgHeight -= imgHeight * downSize;
-      }
+  const mainCtx = canvas.getContext('2d');
+  mainCtx.drawImage(offScreenCanvas, 0, 0);
 
-      ctx.drawImage(img, x, y - imgHeight, imgWidth, imgHeight);
+  drawShip(mainCtx);
+}
+
+function drawShip(ctx){
+  let img = images.find((img) => { return img.id == "img46" });
+
+  if(!ship.pos){
+    ship.pos = getScreenPositionFromGrid(-0.12, 6.8);
+    ship.speed = ship.initSpeed;
+    ship.loaded = false;
+  }
+
+  ship.pos.x += tileWidth * ship.speed;
+  ship.pos.y += tileHeight * ship.speed;
+
+  let w = img.width * tileWidth / 280;
+  let h = img.height * w / img.width;
+
+  ctx.drawImage(img, ship.pos.x, ship.pos.y - h, w, h);
+
+  if(ship.pos.x > canvas.width){
+     delete ship.pos;
+     ship.load = false;
+  }
+  if(ship.pos.x > canvas.width * 0.35 && ship.speed > 0 && !ship.loaded){
+    ship.speed -= ship.initSpeed * 0.001;
+    if(ship.speed <= 0){
+      setTimeout(() => {
+        ship.loaded = true;
+      }, 5000);
     }
   }
+  if(ship.speed < ship.initSpeed && ship.loaded){
+    ship.speed += ship.initSpeed * 0.001;
+  }
+}
+
+function getScreenPositionFromGrid(x, y){
+  let screenX = offsetX + borderSize + x * (tileWidth + borderSize * 2) + y % 2 * (tileWidth / 2 + borderSize);
+  let screenY = offsetY + borderSize + tileHeight + y * (tileHeight / 2 + borderSize);
+  return { x: screenX, y: screenY };
 }
 
 function colorize(image, r, g, b, frames) {
@@ -319,7 +376,7 @@ function colorize(image, r, g, b, frames) {
 
     for (let i = 0; i < imageData.data.length; i += 4) {
       let lightness = parseInt((imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3);
-      let bup = (255 - lightness) * 0.3;
+      let bup = (255 - lightness) * 0.4;
       lightness += bup;
 
       imageData.data[i + 0] = imageData.data[i] + (lightness * r - imageData.data[i]) * a;
