@@ -326,7 +326,13 @@ function drawShip(ctx){
   let img = images.find((img) => { return img.id == "img46" });
 
   if(!ship.pos){
-    ship.pos = getScreenPositionFromGrid(-0.12, 6.8);
+    if(map == vMap){
+      ship.pos = getScreenPositionFromGrid(-0.12, 6.8);
+      ship.breakPoint = 0.35;
+    }else{
+      ship.pos = getScreenPositionFromGrid(-0.12, 5.36);
+      ship.breakPoint = 0.07;
+    }
     ship.speed = ship.initSpeed;
     ship.loaded = false;
   }
@@ -334,16 +340,18 @@ function drawShip(ctx){
   ship.pos.x += tileWidth * ship.speed;
   ship.pos.y += tileHeight * ship.speed;
 
+  let x = offsetX + ship.pos.x;
+  let y = offsetY + ship.pos.y;
   let w = img.width * tileWidth / 280;
   let h = img.height * w / img.width;
 
-  ctx.drawImage(img, ship.pos.x, ship.pos.y - h, w, h);
+  ctx.drawImage(img, x, y - h, w, h);
 
-  if(ship.pos.x > canvas.width){
+  if(x > canvas.width || y - h > canvas.height){
      delete ship.pos;
-     ship.load = false;
+     return;
   }
-  if(ship.pos.x > canvas.width * 0.35 && ship.speed > 0 && !ship.loaded){
+  if(x > canvas.width * ship.breakPoint && ship.speed > 0 && !ship.loaded){
     ship.speed -= ship.initSpeed * 0.001;
     if(ship.speed <= 0){
       setTimeout(() => {
@@ -357,8 +365,8 @@ function drawShip(ctx){
 }
 
 function getScreenPositionFromGrid(x, y){
-  let screenX = offsetX + borderSize + x * (tileWidth + borderSize * 2) + y % 2 * (tileWidth / 2 + borderSize);
-  let screenY = offsetY + borderSize + tileHeight + y * (tileHeight / 2 + borderSize);
+  let screenX = borderSize + x * (tileWidth + borderSize * 2) + y % 2 * (tileWidth / 2 + borderSize);
+  let screenY = borderSize + tileHeight + y * (tileHeight / 2 + borderSize);
   return { x: screenX, y: screenY };
 }
 
@@ -376,12 +384,11 @@ function colorize(image, r, g, b, frames) {
 
     for (let i = 0; i < imageData.data.length; i += 4) {
       let lightness = parseInt((imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3);
-      let bup = (255 - lightness) * 0.4;
-      lightness += bup;
+      let w = (255 - lightness) / 255;
 
-      imageData.data[i + 0] = imageData.data[i] + (lightness * r - imageData.data[i]) * a;
-      imageData.data[i + 1] = imageData.data[i + 1] + (lightness * g - imageData.data[i + 1]) * a;
-      imageData.data[i + 2] = imageData.data[i + 2] + (lightness * b - imageData.data[i + 2]) * a;
+      imageData.data[i + 0] = imageData.data[i] + (lightness * r - imageData.data[i]) * a * w;
+      imageData.data[i + 1] = imageData.data[i + 1] + (lightness * g - imageData.data[i + 1]) * a * w;
+      imageData.data[i + 2] = imageData.data[i + 2] + (lightness * b - imageData.data[i + 2]) * a * w;
     }
 
     ctx.putImageData(imageData, 0, 0);
@@ -447,7 +454,7 @@ function LoadImage(src, id) {
         colorize(img, 0, 0.8, 1, effectSpeed);
       }
       blend(img, effectSpeed);
-      if(img.src.indexOf("text_") == -1) document.getElementById("loaderImg").src = img.src;
+      if(img.src.indexOf("branza_") != -1) document.getElementById("loaderImg").src = img.src;
       resolve(img);
     }
     img.src = src + '?v=20250725';
