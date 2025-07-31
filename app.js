@@ -99,7 +99,7 @@ for(let r = 0; r < vMap.length; r++){
 
 for(let r = 0; r < hMap.length; r++){
   for(let c = 0; c < hMap[r].length; c++){
-    hMap[r][c] = { id: hMap[r][c], blendFrame: vMap[r][c] == 0 ? 9 : 0, clickFrame: effectSpeed };
+    hMap[r][c] = { id: hMap[r][c], blendFrame: hMap[r][c] == 0 ? 9 : 0, clickFrame: effectSpeed };
   }
 }
 
