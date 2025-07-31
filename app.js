@@ -22,75 +22,84 @@ let ship = {
 }
 let cars = [];
 let plane = {};
+let timeOutId;
 
-const images = await Promise.all([
-  LoadImage('images/empty.png', 0),
-  LoadImage('images/text_7.png', 1),
-  LoadImage('images/text_3.png', 2),
-  LoadImage('images/text_9.png', 3),
-  LoadImage('images/text_5.png', 4),
-  LoadImage('images/las.png', 5),
-  LoadImage('images/text_6.png', 6),
-  LoadImage('images/text_1.png', 7),
-  LoadImage('images/branza_6a.png', 8),
-  LoadImage('images/branza_2a.png', 9),
-  LoadImage('images/empty_green.png',11),
-  LoadImage('images/branza_3a.png', 12),
-  LoadImage('images/text_4.png', 13),
-  LoadImage('images/branza_2b_m.png', 14),
-  LoadImage('images/pole.png', 15),
-  LoadImage('images/branza_6c.png', 16),
-  LoadImage('images/branza_2c_m.png', 17),
-  LoadImage('images/branza_7.png', 18),
-  LoadImage('images/branza_2a_m.png', 19),
-  LoadImage('images/branza_10b.png', 20),
-  LoadImage('images/woda.png', 21),
-  LoadImage('images/branza_4.png', 22),
-  LoadImage('images/branza_01a.png', 23),
-  LoadImage('images/branza_9_m.png', 24),
-  LoadImage('images/branza_8a_m.png', 25),
-  LoadImage('images/branza_8c.png', 26),
-  LoadImage('images/branza_8a.png', 27),
-  LoadImage('images/branza_8c_m.png', 28),
-  LoadImage('images/branza_5b.png', 29),
-  LoadImage('images/branza_3c.png', 30),
-  LoadImage('images/branza_3b.png', 31),
-  LoadImage('images/branza_3b_m.png', 32),
-  LoadImage('images/branza_5a.png', 33),
-  LoadImage('images/branza_3d.png', 34),
-  LoadImage('images/branza_8d.png', 35),
-  LoadImage('images/text_10.png', 36),
-  LoadImage('images/text_8.png', 37),
-  LoadImage('images/text_2.png', 38),
-  LoadImage('images/branza_8b_m.png', 39),
-  LoadImage('images/branza_2b.png', 40),
-  LoadImage('images/branza_5b_m.png', 41),
-  LoadImage('images/branza_10a.png', 42),
-  LoadImage('images/branza_8b.png', 43),
-  LoadImage('images/branza_5a_m.png', 44),
-  LoadImage('images/branza_3c_m.png', 45),
-  LoadImage('images/statek2.png', 46),
-  LoadImage('images/car_r1.png', 47),
-  LoadImage('images/car_r2.png', 48),
-  LoadImage('images/car_r3.png', 49),
-  LoadImage('images/car_l1.png', 50),
-  LoadImage('images/car_l2.png', 51),
-  LoadImage('images/car_l3.png', 52),
-  LoadImage('images/samolot_ur.png', 53),
-  LoadImage('images/samolot_dr.png', 54),
-  LoadImage('images/samolot_dl.png', 55),
-  LoadImage('images/samolot_ul.png', 56)
-]);
+const imgList = [
+  { file: 'images/text_7.png', id: 1 },
+  { file: 'images/text_3.png', id: 2 },
+  { file: 'images/text_9.png', id: 3 },
+  { file: 'images/text_5.png', id: 4 },
+  { file: 'images/las.png', id: 5 },
+  { file: 'images/text_6.png', id: 6 },
+  { file: 'images/text_11.png', id: 7 },
+  { file: 'images/branza_6a.png', id: 8 },
+  { file: 'images/branza_2a.png', id: 9 },
+  { file: 'images/empty_green.png', id: 11 },
+  { file: 'images/branza_3a.png', id: 12 },
+  { file: 'images/text_4.png', id: 13 },
+  { file: 'images/branza_2b_m.png', id: 14 },
+  { file: 'images/pole.png', id: 15 },
+  { file: 'images/branza_6c.png', id: 16 },
+  { file: 'images/branza_2c_m.png', id: 17 },
+  { file: 'images/branza_7.png', id: 18 },
+  { file: 'images/branza_2a_m.png', id: 19 },
+  { file: 'images/branza_10b.png', id: 20 },
+  { file: 'images/woda.png', id: 21 },
+  { file: 'images/branza_4.png', id: 22 },
+  { file: 'images/branza_11a.png', id: 23 },
+  { file: 'images/branza_9_m.png', id: 24 },
+  { file: 'images/branza_8a_m.png', id: 25 },
+  { file: 'images/branza_8c.png', id: 26 },
+  { file: 'images/branza_8a.png', id: 27 },
+  { file: 'images/branza_8c_m.png', id: 28 },
+  { file: 'images/branza_5b.png', id: 29 },
+  { file: 'images/branza_3c.png', id: 30 },
+  { file: 'images/branza_3b.png', id: 31 },
+  { file: 'images/branza_3b_m.png', id: 32 },
+  { file: 'images/branza_5a.png', id: 33 },
+  { file: 'images/branza_3d.png', id: 34 },
+  { file: 'images/branza_8d.png', id: 35 },
+  { file: 'images/text_10.png', id: 36 },
+  { file: 'images/text_8.png', id: 37 },
+  { file: 'images/text_2.png', id: 38 },
+  { file: 'images/branza_8b_m.png', id: 39 },
+  { file: 'images/branza_2b.png', id: 40 },
+  { file: 'images/branza_5b_m.png', id: 41 },
+  { file: 'images/branza_10a.png', id: 42 },
+  { file: 'images/branza_8b.png', id: 43 },
+  { file: 'images/branza_5a_m.png', id: 44 },
+  { file: 'images/branza_3c_m.png', id: 45 },
+  { file: 'images/statek2.png', id: 46 },
+  { file: 'images/car_r1.png', id: 47 },
+  { file: 'images/car_r2.png', id: 48 },
+  { file: 'images/car_r3.png', id: 49 },
+  { file: 'images/car_l1.png', id: 50 },
+  { file: 'images/car_l2.png', id: 51 },
+  { file: 'images/car_l3.png', id: 52 },
+  { file: 'images/samolot_ur.png', id: 53 },
+  { file: 'images/samolot_dr.png', id: 54 },
+  { file: 'images/samolot_dl.png', id: 55 },
+  { file: 'images/samolot_ul.png', id: 56 }
+];
+
+let images = [await LoadImage('images/empty.png', 0)];
+
+for(let i = 0; i < imgList.length; i++){
+  LoadImage(imgList[i].file, imgList[i].id).then((img) => {
+    images.push(img);
+    if(!timeOutId) continueBlendingIn();
+  });
+}
 
 for(let r = 0; r < vMap.length; r++){
   for(let c = 0; c < vMap[r].length; c++){
-    vMap[r][c] = { id: vMap[r][c], blendFrame: 0, clickFrame: effectSpeed };
+    vMap[r][c] = { id: vMap[r][c], blendFrame: vMap[r][c] == 0 ? 9 : 0, clickFrame: effectSpeed };
   }
 }
 
 for(let r = 0; r < hMap.length; r++){
   for(let c = 0; c < hMap[r].length; c++){
-    hMap[r][c] = { id: hMap[r][c], blendFrame: 0, clickFrame: effectSpeed };
+    hMap[r][c] = { id: hMap[r][c], blendFrame: vMap[r][c] == 0 ? 9 : 0, clickFrame: effectSpeed };
   }
 }
 
@@ -98,15 +107,10 @@ switchAspect();
 const canvas = document.getElementById('content');
 canvas.style.backgroundColor = "white";
 
-document.getElementById('loader').classList.add("fade-out");
-setTimeout(function() {
-  document.getElementById('loader').style.display = 'none';
-  startBlendingIn();
-  setInterval(() => {
-    draw();
-  }, 1000 / 60);
-  addCar();
-}, 500);
+setInterval(() => {
+  draw();
+}, 1000 / 60);
+addCar();
 
 canvas.onmousedown = (event) => {
   mouseDown = true;
@@ -194,17 +198,19 @@ function continueBlendingIn(){
 
   for(let r = 0; r < map.length; r++){
     for(let c = 0; c < map[r].length; c++){
-      if(map[r][c].blendFrame < effectSpeed - 1){
+      let img = images.find((img) => { return img.id == "img" + map[r][c].id });
+      if(img && map[r][c].blendFrame < effectSpeed - 1){
         map[r][c].blendFrame++;
         finish = false;
       }
     }
   }
 
-  redraw = true;
-
   if(!finish){
-    setTimeout(() => { continueBlendingIn(); }, 1000 / 60);
+    redraw = true;
+    timeOutId = setTimeout(() => { continueBlendingIn(); }, 1000 / 60);
+  }else{
+    timeOutId = undefined
   }
 }
 
@@ -299,10 +305,13 @@ function draw(){
 
     for(let r = 0; r < map.length; r++){
       for(let c = 0; c < map[r].length; c++){
-        if(map[r][c].blendFrame < 1) continue;
+        let img = images.find((img) => { return img.id == "img0" });
+        drawTile(ctx, r, c, img, 10);
 
-        let img = images.find((img) => { return img.id == "img" + map[r][c].id });
+        img = images.find((img) => { return img.id == "img" + map[r][c].id });
+        if(!img) continue;
         
+        if(map[r][c].blendFrame < 1) continue;
         if(map[r][c].blendFrame < effectSpeed - 1) {
           img = img.blended[map[r][c].blendFrame - 1];
         }else
@@ -311,25 +320,8 @@ function draw(){
         }else if(previousGroup && img.src.indexOf("_" + previousGroup) != -1 && frame < effectSpeed - 1){
           img = img.colorized[effectSpeed - frame - 2];
         }
-        
-        let imgWidth = tileWidth;
-        let imgHeight = img.height * imgWidth / img.width;
-        let x = offsetX + borderSize + c * (tileWidth + borderSize * 2) + r % 2 * (tileWidth / 2 + borderSize);
-        let y = offsetY + borderSize + tileHeight + r * (tileHeight / 2 + borderSize);
 
-        if(map[r][c].clickFrame < effectSpeed){
-          let downSize;
-          if(map[r][c].clickFrame < effectSpeed / 2)
-            downSize = 0.2 * map[r][c].clickFrame / (effectSpeed / 2 - 1);
-          else
-            downSize = 0.2 * (effectSpeed - map[r][c].clickFrame) / (effectSpeed / 2 - 1);
-          x += tileWidth * downSize / 2;
-          y -= tileHeight * downSize / 2;
-          imgWidth -= imgWidth * downSize;
-          imgHeight -= imgHeight * downSize;
-        }
-
-        ctx.drawImage(img, x, y - imgHeight, imgWidth, imgHeight);
+        drawTile(ctx, r, c, img, map[r][c].clickFrame);
       }
     }
     redraw = false;
@@ -341,6 +333,27 @@ function draw(){
   drawShip(mainCtx);
   drawCars(mainCtx);
   drawPlane(mainCtx);
+}
+
+function drawTile(ctx, r, c, img, clickFrame){
+  let imgWidth = tileWidth;
+  let imgHeight = img.height * imgWidth / img.width;
+  let x = offsetX + borderSize + c * (tileWidth + borderSize * 2) + r % 2 * (tileWidth / 2 + borderSize);
+  let y = offsetY + borderSize + tileHeight + r * (tileHeight / 2 + borderSize);
+
+  if(clickFrame < effectSpeed){
+    let downSize;
+    if(clickFrame < effectSpeed / 2)
+      downSize = 0.2 * clickFrame / (effectSpeed / 2 - 1);
+    else
+      downSize = 0.2 * (effectSpeed - clickFrame) / (effectSpeed / 2 - 1);
+    x += tileWidth * downSize / 2;
+    y -= tileHeight * downSize / 2;
+    imgWidth -= imgWidth * downSize;
+    imgHeight -= imgHeight * downSize;
+  }
+
+  ctx.drawImage(img, x, y - imgHeight, imgWidth, imgHeight);
 }
 
 function drawCars(ctx){
@@ -368,7 +381,7 @@ function drawCars(ctx){
 
 function addCar(){
   const car = {
-    speed: 0.01 * (1 - 2 * Math.round(Math.random()))
+    speed: 0.005 * (1 - 2 * Math.round(Math.random()))
   };
 
   const r = Math.floor(Math.random() * 3);
@@ -380,14 +393,15 @@ function addCar(){
     car.img = images.find((img) => { return img.id == "img" + (50 + r) });
     car.pos = map == vMap ? getScreenPositionFromGrid(3.75, 10.8) : getScreenPositionFromGrid(2.75, 7.2);
   }
-  
-  cars.push(car);
+
+  if(car.img) cars.push(car);
 
   setTimeout(addCar, 500 + Math.random() * 2000);
 }
 
 function drawShip(ctx){
   let img = images.find((img) => { return img.id == "img46" });
+  if(!img) return;
 
   if(!ship.pos){
     if(map == vMap){
@@ -442,11 +456,12 @@ function drawPlane(ctx){
     if(plane.speed.x < 0 && plane.speed.y > 0) id = "img55";
     if(plane.speed.x < 0 && plane.speed.y < 0) id = "img56";
     plane.img = images.find((img) => { return img.id == id });
+    if(!plane.img) return;
     plane.w = plane.img.width * tileWidth / 280;
     plane.h = plane.img.height * plane.w / plane.img.width;
     plane.pos = {
-      x: plane.speed.x > 0 ? -plane.w : canvas.width,
-      y: plane.speed.y < 0 ? canvas.height / 2 + Math.random() * canvas.height / 2 : Math.random() * canvas.height / 2
+      x: -offsetX + (plane.speed.x > 0 ? -plane.w : canvas.width),
+      y: -offsetY + (plane.speed.y < 0 ? canvas.height / 2 + Math.random() * canvas.height / 2 : Math.random() * canvas.height / 2)
     }
   }
 
@@ -554,7 +569,6 @@ function LoadImage(src, id) {
         colorize(img, 0, 0.8, 1, effectSpeed);
       }
       blend(img, effectSpeed);
-      if(img.src.indexOf("branza_") != -1) document.getElementById("loaderImg").src = img.src;
       resolve(img);
     }
     img.src = src;// + '?v=20250725';
