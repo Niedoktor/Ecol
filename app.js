@@ -84,13 +84,6 @@ const imgList = [
 
 let images = [await LoadImage('images/empty.png', 0)];
 
-for(let i = 0; i < imgList.length; i++){
-  LoadImage(imgList[i].file, imgList[i].id).then((img) => {
-    images.push(img);
-    if(!timeOutId) continueBlendingIn();
-  });
-}
-
 for(let r = 0; r < vMap.length; r++){
   for(let c = 0; c < vMap[r].length; c++){
     vMap[r][c] = { id: vMap[r][c], blendFrame: vMap[r][c] == 0 ? 9 : 0, clickFrame: effectSpeed };
@@ -111,6 +104,18 @@ setInterval(() => {
   draw();
 }, 1000 / 60);
 addCar();
+
+LazyLoad(1);
+
+function LazyLoad(idx){
+  LoadImage(imgList[idx].file, imgList[idx].id).then((img) => {
+    images.push(img);
+    if(!timeOutId) continueBlendingIn();
+    if(idx < imgList.length - 1) LazyLoad(idx + 1);
+  });
+}
+//for(let i = 0; i < imgList.length; i++){
+//}
 
 canvas.onmousedown = (event) => {
   mouseDown = true;
@@ -210,7 +215,7 @@ function continueBlendingIn(){
     redraw = true;
     timeOutId = setTimeout(() => { continueBlendingIn(); }, 1000 / 60);
   }else{
-    timeOutId = undefined
+    timeOutId = undefined;
   }
 }
 
@@ -305,11 +310,12 @@ function draw(){
 
     for(let r = 0; r < map.length; r++){
       for(let c = 0; c < map[r].length; c++){
-        let img = images.find((img) => { return img.id == "img0" });
-        drawTile(ctx, r, c, img, 10);
-
-        img = images.find((img) => { return img.id == "img" + map[r][c].id });
-        if(!img) continue;
+        let img = images.find((img) => { return img.id == "img" + map[r][c].id });
+        if(!img || map[r][c].blendFrame < effectSpeed - 1){
+          let img0 = images.find((img) => { return img.id == "img0" });
+          drawTile(ctx, r, c, img0, 10);
+          if(!img) continue;
+        }
         
         if(map[r][c].blendFrame < 1) continue;
         if(map[r][c].blendFrame < effectSpeed - 1) {
