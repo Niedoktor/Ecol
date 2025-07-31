@@ -22,68 +22,8 @@ let ship = {
 }
 let cars = [];
 let plane = {};
-let timeOutId;
 
-const imgList = [
-  { file: 'images/empty.png', id: 0 },
-  { file: 'images/text_7.png', id: 1 },
-  { file: 'images/text_3.png', id: 2 },
-  { file: 'images/text_9.png', id: 3 },
-  { file: 'images/text_5.png', id: 4 },
-  { file: 'images/las.png', id: 5 },
-  { file: 'images/text_6.png', id: 6 },
-  { file: 'images/text_11.png', id: 7 },
-  { file: 'images/branza_6a.png', id: 8 },
-  { file: 'images/branza_2a.png', id: 9 },
-  { file: 'images/empty_green.png', id: 11 },
-  { file: 'images/branza_3a.png', id: 12 },
-  { file: 'images/text_4.png', id: 13 },
-  { file: 'images/branza_2b_m.png', id: 14 },
-  { file: 'images/pole.png', id: 15 },
-  { file: 'images/branza_6c.png', id: 16 },
-  { file: 'images/branza_2c_m.png', id: 17 },
-  { file: 'images/branza_7.png', id: 18 },
-  { file: 'images/branza_2a_m.png', id: 19 },
-  { file: 'images/branza_10b.png', id: 20 },
-  { file: 'images/woda.png', id: 21 },
-  { file: 'images/branza_4.png', id: 22 },
-  { file: 'images/branza_11a.png', id: 23 },
-  { file: 'images/branza_9_m.png', id: 24 },
-  { file: 'images/branza_8a_m.png', id: 25 },
-  { file: 'images/branza_8c.png', id: 26 },
-  { file: 'images/branza_8a.png', id: 27 },
-  { file: 'images/branza_8c_m.png', id: 28 },
-  { file: 'images/branza_5b.png', id: 29 },
-  { file: 'images/branza_3c.png', id: 30 },
-  { file: 'images/branza_3b.png', id: 31 },
-  { file: 'images/branza_3b_m.png', id: 32 },
-  { file: 'images/branza_5a.png', id: 33 },
-  { file: 'images/branza_3d.png', id: 34 },
-  { file: 'images/branza_8d.png', id: 35 },
-  { file: 'images/text_10.png', id: 36 },
-  { file: 'images/text_8.png', id: 37 },
-  { file: 'images/text_2.png', id: 38 },
-  { file: 'images/branza_8b_m.png', id: 39 },
-  { file: 'images/branza_2b.png', id: 40 },
-  { file: 'images/branza_5b_m.png', id: 41 },
-  { file: 'images/branza_10a.png', id: 42 },
-  { file: 'images/branza_8b.png', id: 43 },
-  { file: 'images/branza_5a_m.png', id: 44 },
-  { file: 'images/branza_3c_m.png', id: 45 },
-  { file: 'images/statek2.png', id: 46 },
-  { file: 'images/car_r1.png', id: 47 },
-  { file: 'images/car_r2.png', id: 48 },
-  { file: 'images/car_r3.png', id: 49 },
-  { file: 'images/car_l1.png', id: 50 },
-  { file: 'images/car_l2.png', id: 51 },
-  { file: 'images/car_l3.png', id: 52 },
-  { file: 'images/samolot_ur.png', id: 53 },
-  { file: 'images/samolot_dr.png', id: 54 },
-  { file: 'images/samolot_dl.png', id: 55 },
-  { file: 'images/samolot_ul.png', id: 56 }
-];
-
-let images = [await LoadImage('images/empty.png', 0)];
+let images = [];
 
 for(let r = 0; r < vMap.length; r++){
   for(let c = 0; c < vMap[r].length; c++){
@@ -101,17 +41,78 @@ switchAspect();
 const canvas = document.getElementById('content');
 canvas.style.backgroundColor = "white";
 
+await LoadImage('images/empty.png', 0);
+
+await Promise.all([
+  LoadImage('images/text_7.png', 1),
+  LoadImage('images/text_3.png', 2),
+  LoadImage('images/text_9.png', 3),
+  LoadImage('images/text_5.png', 4),
+  LoadImage('images/las.png', 5),
+  LoadImage('images/text_6.png', 6),
+  LoadImage('images/text_11.png', 7),
+  LoadImage('images/branza_6a.png', 8),
+  LoadImage('images/branza_2a.png', 9),
+  LoadImage('images/empty_green.png',11),
+  LoadImage('images/branza_3a.png', 12),
+  LoadImage('images/text_4.png', 13),
+  LoadImage('images/branza_2b_m.png', 14),
+  LoadImage('images/pole.png', 15),
+  LoadImage('images/branza_6c.png', 16),
+  LoadImage('images/branza_2c_m.png', 17),
+  LoadImage('images/branza_7.png', 18),
+  LoadImage('images/branza_2a_m.png', 19),
+  LoadImage('images/branza_10b.png', 20),
+  LoadImage('images/woda.png', 21),
+  LoadImage('images/branza_4.png', 22),
+  LoadImage('images/branza_11a.png', 23),
+  LoadImage('images/branza_9_m.png', 24),
+  LoadImage('images/branza_8a_m.png', 25),
+  LoadImage('images/branza_8c.png', 26),
+  LoadImage('images/branza_8a.png', 27),
+  LoadImage('images/branza_8c_m.png', 28),
+  LoadImage('images/branza_5b.png', 29),
+  LoadImage('images/branza_3c.png', 30),
+  LoadImage('images/branza_3b.png', 31),
+  LoadImage('images/branza_3b_m.png', 32),
+  LoadImage('images/branza_5a.png', 33),
+  LoadImage('images/branza_3d.png', 34),
+  LoadImage('images/branza_8d.png', 35),
+  LoadImage('images/text_10.png', 36),
+  LoadImage('images/text_8.png', 37),
+  LoadImage('images/text_2.png', 38),
+  LoadImage('images/branza_8b_m.png', 39),
+  LoadImage('images/branza_2b.png', 40),
+  LoadImage('images/branza_5b_m.png', 41),
+  LoadImage('images/branza_10a.png', 42),
+  LoadImage('images/branza_8b.png', 43),
+  LoadImage('images/branza_5a_m.png', 44),
+  LoadImage('images/branza_3c_m.png', 45),
+  LoadImage('images/statek2.png', 46),
+  LoadImage('images/car_r1.png', 47),
+  LoadImage('images/car_r2.png', 48),
+  LoadImage('images/car_r3.png', 49),
+  LoadImage('images/car_l1.png', 50),
+  LoadImage('images/car_l2.png', 51),
+  LoadImage('images/car_l3.png', 52),
+  LoadImage('images/samolot_ur.png', 53),
+  LoadImage('images/samolot_dr.png', 54),
+  LoadImage('images/samolot_dl.png', 55),
+  LoadImage('images/samolot_ul.png', 56)
+]);
+
+// for(let i = 1; i < imgList.length; i++){
+//   await LoadImage(imgList[i].file, imgList[i].id).then((img) => {
+//     images.push(img);
+//     redraw = true;
+//     draw()
+//   });
+// }
+
 setInterval(() => {
   draw();
 }, 1000 / 60);
 addCar();
-
-for(let i = 1; i < imgList.length; i++){
-  LoadImage(imgList[i].file, imgList[i].id).then((img) => {
-    images.push(img);
-    redraw = true;
-  });
-}
 
 canvas.onmousedown = (event) => {
   mouseDown = true;
@@ -576,6 +577,9 @@ function LoadImage(src, id) {
         colorize(img, 0, 0.8, 1, effectSpeed);
       }
       blend(img, effectSpeed);
+      images.push(img);
+      redraw = true;
+      draw();
       resolve(img);
     }
     img.draggable = "false";
