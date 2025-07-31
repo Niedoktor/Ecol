@@ -25,6 +25,7 @@ let plane = {};
 let timeOutId;
 
 const imgList = [
+  { file: 'images/empty.png', id: 0 },
   { file: 'images/text_7.png', id: 1 },
   { file: 'images/text_3.png', id: 2 },
   { file: 'images/text_9.png', id: 3 },
@@ -106,12 +107,14 @@ setInterval(() => {
 addCar();
 
 LazyLoad(1);
+LazyLoad(2);
+LazyLoad(3);
 
 function LazyLoad(idx){
   LoadImage(imgList[idx].file, imgList[idx].id).then((img) => {
     images.push(img);
     if(!timeOutId) continueBlendingIn();
-    if(idx < imgList.length - 1) LazyLoad(idx + 1);
+    if(idx < imgList.length - 3) LazyLoad(idx + 3);
   });
 }
 //for(let i = 0; i < imgList.length; i++){
@@ -169,6 +172,8 @@ function continueClick(tile){
 
 function startColorize(tile){
   const img = images.find((img) => { return img.id == "img" + tile.id });
+  if(!img) return;
+
   if(img.src.indexOf("text_") == -1 && img.src.indexOf("branza_") == -1) return;
   previousGroup = selectedGroup;
   if(img.src.indexOf("text_") != -1)
@@ -580,9 +585,9 @@ function LoadImage(src, id) {
       blend(img, effectSpeed);
       resolve(img);
     }
-    img.src = src;// + '?v=20250725';
     img.draggable = "false";
     img.id = "img" + id;
+    img.src = src + '?v=' + parseInt(Math.random() * 1000000);
   });
 }
 
