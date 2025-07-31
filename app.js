@@ -500,6 +500,9 @@ function colorize(image, r, g, b, frames) {
     for (let i = 0; i < imageData.data.length; i += 4) {
       let lightness = parseInt((imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3);
       let w = (255 - lightness) / 255;
+      if(image.src.indexOf("text_") != -1){
+        if(lightness < 200) w = 0; else w = 1 - w;
+      }
 
       imageData.data[i + 0] = imageData.data[i] + (lightness * r - imageData.data[i]) * a * w;
       imageData.data[i + 1] = imageData.data[i + 1] + (lightness * g - imageData.data[i + 1]) * a * w;
