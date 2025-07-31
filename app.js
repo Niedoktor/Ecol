@@ -87,13 +87,13 @@ let images = [await LoadImage('images/empty.png', 0)];
 
 for(let r = 0; r < vMap.length; r++){
   for(let c = 0; c < vMap[r].length; c++){
-    vMap[r][c] = { id: vMap[r][c], blendFrame: vMap[r][c] == 0 ? 9 : 0, clickFrame: effectSpeed };
+    vMap[r][c] = { id: vMap[r][c], blendFrame: 9, clickFrame: effectSpeed };
   }
 }
 
 for(let r = 0; r < hMap.length; r++){
   for(let c = 0; c < hMap[r].length; c++){
-    hMap[r][c] = { id: hMap[r][c], blendFrame: hMap[r][c] == 0 ? 9 : 0, clickFrame: effectSpeed };
+    hMap[r][c] = { id: hMap[r][c], blendFrame: 9, clickFrame: effectSpeed };
   }
 }
 
@@ -106,19 +106,12 @@ setInterval(() => {
 }, 1000 / 60);
 addCar();
 
-LazyLoad(1);
-LazyLoad(2);
-LazyLoad(3);
-
-function LazyLoad(idx){
-  LoadImage(imgList[idx].file, imgList[idx].id).then((img) => {
+for(let i = 1; i < imgList.length; i++){
+  LoadImage(imgList[i].file, imgList[i].id).then((img) => {
     images.push(img);
-    if(!timeOutId) continueBlendingIn();
-    if(idx < imgList.length - 3) LazyLoad(idx + 3);
+    redraw = true;
   });
 }
-//for(let i = 0; i < imgList.length; i++){
-//}
 
 canvas.onmousedown = (event) => {
   mouseDown = true;
