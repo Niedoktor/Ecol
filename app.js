@@ -2,6 +2,7 @@ const switchAspectFactor = 1.75;
 const borderSize = 0.5;
 const effectSpeed = 10;
 const offScreenCanvas = new OffscreenCanvas(0, 0);
+const knowMoreSpeed = 5000;
 
 let aspect;
 let tileWidth;
@@ -11,6 +12,8 @@ let offsetY;
 let selectedGroup;
 let previousGroup;
 let frame;
+let moreFrame;
+let moreFrameDir;
 let map;
 let cols;
 let mouseDown;
@@ -22,8 +25,8 @@ let ship = {
 }
 let cars = [];
 let plane = {};
-
 let images = [];
+let knowMoreTimeoutId;
 
 for(let r = 0; r < vMap.length; r++){
   for(let c = 0; c < vMap[r].length; c++){
@@ -42,6 +45,7 @@ const canvas = document.getElementById('content');
 canvas.style.backgroundColor = "white";
 
 await LoadImage('images/empty.png', 0);
+await LoadImage('images/knowMore.png', 100);
 
 await Promise.all([
   LoadImage('images/text_7.png', 1),
@@ -148,6 +152,7 @@ canvas.onmousemove = (event) => {
 
 function startClick(tile){
   tile.clickFrame = 0;
+  stopMoreFrame();
   continueClick(tile);
 }
 
@@ -185,6 +190,34 @@ function continueColorize(){
 
   if(frame < effectSpeed - 1){
     setTimeout(() => { continueColorize(); }, 1000 / 60);
+  }else{
+    startMoreFrame();
+  }
+}
+
+function startMoreFrame(){
+  moreFrame = 0;
+  moreFrameDir = 1;
+  knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(); }, knowMoreSpeed);
+}
+
+function stopMoreFrame(){
+  moreFrame = 0;
+  if(knowMoreTimeoutId) clearTimeout(knowMoreTimeoutId);
+  knowMoreTimeoutId = undefined;
+}
+
+function continueMoreFrame(){
+  moreFrame += moreFrameDir;
+  redraw = true;
+
+  if(moreFrame == effectSpeed * 2 - 1){
+    moreFrameDir = -1;
+    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(); }, knowMoreSpeed);
+  }else if(moreFrame != 0){
+    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(); }, 1000 / 60);
+  }else{
+    startMoreFrame();
   }
 }
 
@@ -289,6 +322,7 @@ function switchAspect() {
   delete ship.pos;
   cars = [];
   delete plane.pos;
+  stopMoreFrame();
 }
 
 function onWindowResize() {
@@ -310,6 +344,7 @@ function draw(){
     for(let r = 0; r < map.length; r++){
       for(let c = 0; c < map[r].length; c++){
         let img = images.find((img) => { return img.id == "img" + map[r][c].id });
+
         if(!img || map[r][c].blendFrame < effectSpeed - 1){
           let img0 = images.find((img) => { return img.id == "img0" });
           drawTile(ctx, r, c, img0, 10);
@@ -320,11 +355,15 @@ function draw(){
         if(map[r][c].blendFrame < effectSpeed - 1) {
           img = img.blended[map[r][c].blendFrame - 1];
         }else
-        if(selectedGroup && img.src.indexOf("_" + selectedGroup) != -1){
-          img = img.colorized[frame - 1];
-        }else if(previousGroup && img.src.indexOf("_" + previousGroup) != -1 && frame < effectSpeed - 1){
-          img = img.colorized[effectSpeed - frame - 2];
-        }
+          if(selectedGroup){
+            if(img.src.indexOf("_" + selectedGroup) != -1){
+              if(img.src.indexOf("text_") != -1 && moreFrame > 0){
+                img = img.more[moreFrame - 1];
+              }else img = img.colorized[frame - 1];
+            }else if(previousGroup && img.src.indexOf("_" + previousGroup) != -1 && frame < effectSpeed - 1){
+              img = img.colorized[effectSpeed - frame - 2];
+            }else img = img.blended[5];
+          }
 
         drawTile(ctx, r, c, img, map[r][c].clickFrame);
       }
@@ -505,7 +544,7 @@ function colorize(image, r, g, b, frames) {
     for (let i = 0; i < imageData.data.length; i += 4) {
       let lightness = parseInt((imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3);
       let w = (255 - lightness) / 255;
-      if(image.src.indexOf("text_") != -1){
+      if(image.src.indexOf("text_") != -1 || image.src.indexOf("knowMore") != -1){
         if(lightness < 200) w = 0; else w = 1 - w;
       }
 
@@ -537,6 +576,24 @@ function blend(image, frames) {
 
     ctx.putImageData(imageData, 0, 0);
     image.blended.push(offscreen);
+  }
+}
+
+function knowMore(image, frames) {
+  image.more = [];
+  const knowMoreImg = images.find((img) => { return img.id == "img100" });
+
+  for(let f = 1; f < frames * 2; f++){
+    const offscreen = new OffscreenCanvas(image.width, image.height);
+    const ctx = offscreen.getContext("2d");
+
+    let w = image.width * (frames - f - 1) / frames;
+
+    let x = image.width / 2 - w / 2;
+    
+    ctx.drawImage(w > 0 ? image.colorized[8] : knowMoreImg.colorized[8], x, 0, w, image.height);
+
+    image.more.push(offscreen);
   }
 }
 
@@ -573,8 +630,12 @@ function LoadImage(src, id) {
   return new Promise(function (resolve) {
     const img = new Image();
     img.onload = () => {
-      if(img.src.indexOf("branza_") != -1 || img.src.indexOf("text_") != -1){
-        colorize(img, 0, 0.8, 1, effectSpeed);
+      if(img.src.indexOf("branza_") != -1 || img.src.indexOf("text_") != -1 || img.src.indexOf("knowMore") != -1){
+        if(img.src.indexOf("branza_") != -1)
+          colorize(img, 0, 0.8, 1, effectSpeed);
+        else
+          colorize(img, 0, 0.5, 1, effectSpeed);
+        if(img.src.indexOf("text_") != -1) knowMore(img, effectSpeed);
       }
       blend(img, effectSpeed);
       images.push(img);
