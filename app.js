@@ -2,7 +2,7 @@ const switchAspectFactor = 1.75;
 const borderSize = 0.5;
 const effectSpeed = 10;
 const offScreenCanvas = new OffscreenCanvas(0, 0);
-const knowMoreSpeed = 5000;
+const knowMoreSpeed = 3000;
 
 let aspect;
 let tileWidth;
@@ -105,17 +105,10 @@ await Promise.all([
   LoadImage('images/samolot_ul.png', 56)
 ]);
 
-// for(let i = 1; i < imgList.length; i++){
-//   await LoadImage(imgList[i].file, imgList[i].id).then((img) => {
-//     images.push(img);
-//     redraw = true;
-//     draw()
-//   });
-// }
-
 setInterval(() => {
   draw();
 }, 1000 / 60);
+
 addCar();
 
 canvas.onmousedown = (event) => {
@@ -129,6 +122,8 @@ canvas.onmouseup = (event) => {
   if(!mouseMoved){
     const tile = getObjectFromScreen(event.x, event.y);
     if(tile){
+      const img = images.find((img) => { return img.id == "img" + tile.id });
+       if(img.src.indexOf("text_") == -1 && img.src.indexOf("branza_") == -1) return;
       startClick(tile);
       startColorize(tile);
       redraw = true;
