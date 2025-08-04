@@ -189,9 +189,9 @@ function continueBlendingIn(){
 
   if(!finish){
     redraw = true;
-    timeOutId = setTimeout(() => { continueBlendingIn(); }, 1000 / 60);
+    setTimeout(() => { continueBlendingIn(); }, 1000 / 60);
   }else{
-    timeOutId = undefined;
+    undefined;
   }
 }
 
@@ -473,42 +473,43 @@ function getScreenPositionFromGrid(x, y){
   return { x: screenX, y: screenY };
 }
 
-function getImageData(image){
-  const videoframe = new VideoFrame(image, { codedWidth: image.width, codedHeight: image.height, timestamp:"0", format:"RGBA" });
-  const buffer = new ArrayBuffer(videoframe.allocationSize()); 
-  videoframe.copyTo(buffer, { format: "RGBA" });
-  return { data: new Uint8ClampedArray(buffer) };
-}
-
-function putImageData(ctx, data, width, height){
-  ctx.putImageData(new ImageData(data, width, height), 0, 0);
-}
-
 function colorize(image, r, g, b, frames) {
   image.colorized = [];
+
+  const inverse = image.src.indexOf("text_") != -1 || image.src.indexOf("knowMore") != -1;
+
+  const oc = new OffscreenCanvas(image.width, image.height);
+  const srcImageCtx = oc.getContext("2d");  
+  srcImageCtx.drawImage(image, 0, 0);
+  const srcImageData = srcImageCtx.getImageData(0, 0, image.width, image.height);
+  const dstImageData = new ImageData(image.width, image.height);
+  const lightMap = new Uint8Array(srcImageData.data.length);
+
+  for (let i = 0, l = 0; i < srcImageData.data.length; i += 4, l++) {
+    lightMap[l] = parseInt((srcImageData.data[i] + srcImageData.data[i + 1] + srcImageData.data[i + 2]) / 3);
+  }
 
   for(let f = 1; f < frames; f++){
     const offscreen = new OffscreenCanvas(image.width, image.height);
     const ctx = offscreen.getContext("2d");
 
-    const imageData = getImageData(image);
     const a = f / (frames - 1);
-    const inverse = image.src.indexOf("text_") != -1 || image.src.indexOf("knowMore") != -1;
 
-    for (let i = 0; i < imageData.data.length; i += 4) {
-      let lightness = parseInt((imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3);
+    for (let i = 0, l = 0; i < srcImageData.data.length; i += 4, l++) {
+      let lightness = lightMap[l];
       let w = (255 - lightness) / 255;
       if(inverse){
         if(lightness < 200) w = 0; else w = 1 - w;
       }
       const aw = a * w;
 
-      imageData.data[i + 0] = imageData.data[i] + (lightness * r - imageData.data[i]) * aw;
-      imageData.data[i + 1] = imageData.data[i + 1] + (lightness * g - imageData.data[i + 1]) * aw;
-      imageData.data[i + 2] = imageData.data[i + 2] + (lightness * b - imageData.data[i + 2]) * aw;
+      dstImageData.data[i + 0] = srcImageData.data[i] + (lightness * r - srcImageData.data[i]) * aw;
+      dstImageData.data[i + 1] = srcImageData.data[i + 1] + (lightness * g - srcImageData.data[i + 1]) * aw;
+      dstImageData.data[i + 2] = srcImageData.data[i + 2] + (lightness * b - srcImageData.data[i + 2]) * aw;
+      dstImageData.data[i + 3] = srcImageData.data[i + 3];
     }
 
-    putImageData(ctx, imageData.data, image.width, image.height);
+    ctx.putImageData(dstImageData, 0, 0);
     image.colorized.push(offscreen);
   }
 }
@@ -516,18 +517,23 @@ function colorize(image, r, g, b, frames) {
 function blend(image, frames) {
   image.blended = [];
 
+  const oc = new OffscreenCanvas(image.width, image.height);
+  const srcImageCtx = oc.getContext("2d");  
+  srcImageCtx.drawImage(image, 0, 0);
+
   for(let f = 1; f < frames - 1; f++){
     const offscreen = new OffscreenCanvas(image.width, image.height);
     const ctx = offscreen.getContext("2d");
 
-    const imageData = getImageData(image);
+    const dstImageData = srcImageCtx.getImageData(0, 0, image.width, image.height);
+
     const a = f / (frames - 1);
 
-    for (let i = 0; i < imageData.data.length; i += 4) {
-      imageData.data[i + 3] *= a;
+    for (let i = 0; i < dstImageData.data.length; i += 4) {
+      dstImageData.data[i + 3] *= a;
     }
 
-    putImageData(ctx, imageData.data, image.width, image.height);
+    ctx.putImageData(dstImageData, 0, 0);
     image.blended.push(offscreen);
   }
 }
