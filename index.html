@@ -15,13 +15,15 @@
 
     #content{
       display: block;
-      background-color: white;
+      background-color: black;
       border-radius: 25px;
     }
 
     #loader{
       z-index: 100;
       background-color: black;
+      font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+      color: rgb(165, 165, 165);
       width: 100%;
       height: 100%;
       left: 0;
@@ -81,12 +83,12 @@
 <script src="verticalMap.js?v=20250728"></script>
 <script src="horizontalMap.js?v=20250728"></script>
 <script src="links.js?v=20250730"></script>
+<script src="imageFiles.js?v=20250804"></script>
 <script type="module" src="app.js?v=20250731.1"></script>
 
 <body>
-  <!-- <div id="loader">
-    <img id="loaderImg" src="images/branza_01a.png">
-  </div>   -->
+  <div id="loader">
+  </div>  
   <canvas id="content">
   </canvas>
 </body>

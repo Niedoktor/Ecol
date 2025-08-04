@@ -30,13 +30,13 @@ let knowMoreTimeoutId;
 
 for(let r = 0; r < vMap.length; r++){
   for(let c = 0; c < vMap[r].length; c++){
-    vMap[r][c] = { id: vMap[r][c], blendFrame: 9, clickFrame: effectSpeed };
+    vMap[r][c] = { id: vMap[r][c], blendFrame: parseInt(-Math.random() * 60), clickFrame: effectSpeed };
   }
 }
 
 for(let r = 0; r < hMap.length; r++){
   for(let c = 0; c < hMap[r].length; c++){
-    hMap[r][c] = { id: hMap[r][c], blendFrame: 9, clickFrame: effectSpeed };
+    hMap[r][c] = { id: hMap[r][c], blendFrame: parseInt(-Math.random() * 60), clickFrame: effectSpeed };
   }
 }
 
@@ -47,63 +47,12 @@ canvas.style.backgroundColor = "white";
 await LoadImage('images/empty.png', 0);
 await LoadImage('images/knowMore.png', 100);
 
-await Promise.all([
-  LoadImage('images/text_7.png', 1),
-  LoadImage('images/text_3.png', 2),
-  LoadImage('images/text_9.png', 3),
-  LoadImage('images/text_5.png', 4),
-  LoadImage('images/las.png', 5),
-  LoadImage('images/text_6.png', 6),
-  LoadImage('images/text_11.png', 7),
-  LoadImage('images/branza_6a.png', 8),
-  LoadImage('images/branza_2a.png', 9),
-  LoadImage('images/empty_green.png',11),
-  LoadImage('images/branza_3a.png', 12),
-  LoadImage('images/text_4.png', 13),
-  LoadImage('images/branza_2b_m.png', 14),
-  LoadImage('images/pole.png', 15),
-  LoadImage('images/branza_6c.png', 16),
-  LoadImage('images/branza_2c_m.png', 17),
-  LoadImage('images/branza_7.png', 18),
-  LoadImage('images/branza_2a_m.png', 19),
-  LoadImage('images/branza_10b.png', 20),
-  LoadImage('images/woda.png', 21),
-  LoadImage('images/branza_4.png', 22),
-  LoadImage('images/branza_11a.png', 23),
-  LoadImage('images/branza_9_m.png', 24),
-  LoadImage('images/branza_8a_m.png', 25),
-  LoadImage('images/branza_8c.png', 26),
-  LoadImage('images/branza_8a.png', 27),
-  LoadImage('images/branza_8c_m.png', 28),
-  LoadImage('images/branza_5b.png', 29),
-  LoadImage('images/branza_3c.png', 30),
-  LoadImage('images/branza_3b.png', 31),
-  LoadImage('images/branza_3b_m.png', 32),
-  LoadImage('images/branza_5a.png', 33),
-  LoadImage('images/branza_3d.png', 34),
-  LoadImage('images/branza_8d.png', 35),
-  LoadImage('images/text_10.png', 36),
-  LoadImage('images/text_8.png', 37),
-  LoadImage('images/text_2.png', 38),
-  LoadImage('images/branza_8b_m.png', 39),
-  LoadImage('images/branza_2b.png', 40),
-  LoadImage('images/branza_5b_m.png', 41),
-  LoadImage('images/branza_10a.png', 42),
-  LoadImage('images/branza_8b.png', 43),
-  LoadImage('images/branza_5a_m.png', 44),
-  LoadImage('images/branza_3c_m.png', 45),
-  LoadImage('images/statek2.png', 46),
-  LoadImage('images/car_r1.png', 47),
-  LoadImage('images/car_r2.png', 48),
-  LoadImage('images/car_r3.png', 49),
-  LoadImage('images/car_l1.png', 50),
-  LoadImage('images/car_l2.png', 51),
-  LoadImage('images/car_l3.png', 52),
-  LoadImage('images/samolot_ur.png', 53),
-  LoadImage('images/samolot_dr.png', 54),
-  LoadImage('images/samolot_dl.png', 55),
-  LoadImage('images/samolot_ul.png', 56)
-]);
+await Promise.all(
+  imageFiles.map((file) => LoadImage(file.file, file.id))
+);
+
+document.getElementById('loader').classList.add("fade-out");
+setTimeout(function() { document.getElementById('loader').style.display = 'none'; continueBlendingIn(); }, 500);
 
 setInterval(() => {
   draw();
@@ -535,17 +484,19 @@ function colorize(image, r, g, b, frames) {
 
     const imageData = ctx.getImageData(0, 0, image.width, image.height);
     const a = f / (frames - 1);
+    const inverse = image.src.indexOf("text_") != -1 || image.src.indexOf("knowMore") != -1;
 
     for (let i = 0; i < imageData.data.length; i += 4) {
       let lightness = parseInt((imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3);
       let w = (255 - lightness) / 255;
-      if(image.src.indexOf("text_") != -1 || image.src.indexOf("knowMore") != -1){
+      if(inverse){
         if(lightness < 200) w = 0; else w = 1 - w;
       }
+      const aw = a * w;
 
-      imageData.data[i + 0] = imageData.data[i] + (lightness * r - imageData.data[i]) * a * w;
-      imageData.data[i + 1] = imageData.data[i + 1] + (lightness * g - imageData.data[i + 1]) * a * w;
-      imageData.data[i + 2] = imageData.data[i + 2] + (lightness * b - imageData.data[i + 2]) * a * w;
+      imageData.data[i + 0] = imageData.data[i] + (lightness * r - imageData.data[i]) * aw;
+      imageData.data[i + 1] = imageData.data[i + 1] + (lightness * g - imageData.data[i + 1]) * aw;
+      imageData.data[i + 2] = imageData.data[i + 2] + (lightness * b - imageData.data[i + 2]) * aw;
     }
 
     ctx.putImageData(imageData, 0, 0);
@@ -634,13 +585,14 @@ function LoadImage(src, id) {
       }
       blend(img, effectSpeed);
       images.push(img);
-      redraw = true;
-      draw();
+      document.getElementById("loader").innerText = `${images.length} / ${imageFiles.length + 2}`;
+      // redraw = true;
+      // draw();
       resolve(img);
     }
     img.draggable = "false";
     img.id = "img" + id;
-    img.src = src + '?v=' + parseInt(Math.random() * 1000000);
+    img.src = src;// + '?v=' + parseInt(Math.random() * 1000000);
   });
 }
 
