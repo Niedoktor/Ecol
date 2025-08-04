@@ -473,6 +473,17 @@ function getScreenPositionFromGrid(x, y){
   return { x: screenX, y: screenY };
 }
 
+function getImageData(image){
+  const videoframe = new VideoFrame(image, { codedWidth: image.width, codedHeight: image.height, timestamp:"0", format:"RGBA" });
+  const buffer = new ArrayBuffer(videoframe.allocationSize()); 
+  videoframe.copyTo(buffer, { format: "RGBA" });
+  return { data: new Uint8ClampedArray(buffer) };
+}
+
+function putImageData(ctx, data, width, height){
+  ctx.putImageData(new ImageData(data, width, height), 0, 0);
+}
+
 function colorize(image, r, g, b, frames) {
   image.colorized = [];
 
@@ -480,9 +491,7 @@ function colorize(image, r, g, b, frames) {
     const offscreen = new OffscreenCanvas(image.width, image.height);
     const ctx = offscreen.getContext("2d");
 
-    ctx.drawImage(image, 0, 0);
-
-    const imageData = ctx.getImageData(0, 0, image.width, image.height);
+    const imageData = getImageData(image);
     const a = f / (frames - 1);
     const inverse = image.src.indexOf("text_") != -1 || image.src.indexOf("knowMore") != -1;
 
@@ -499,7 +508,7 @@ function colorize(image, r, g, b, frames) {
       imageData.data[i + 2] = imageData.data[i + 2] + (lightness * b - imageData.data[i + 2]) * aw;
     }
 
-    ctx.putImageData(imageData, 0, 0);
+    putImageData(ctx, imageData.data, image.width, image.height);
     image.colorized.push(offscreen);
   }
 }
@@ -511,16 +520,14 @@ function blend(image, frames) {
     const offscreen = new OffscreenCanvas(image.width, image.height);
     const ctx = offscreen.getContext("2d");
 
-    ctx.drawImage(image, 0, 0);
-
-    const imageData = ctx.getImageData(0, 0, image.width, image.height);
+    const imageData = getImageData(image);
     const a = f / (frames - 1);
 
     for (let i = 0; i < imageData.data.length; i += 4) {
       imageData.data[i + 3] *= a;
     }
 
-    ctx.putImageData(imageData, 0, 0);
+    putImageData(ctx, imageData.data, image.width, image.height);
     image.blended.push(offscreen);
   }
 }
