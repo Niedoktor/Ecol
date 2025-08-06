@@ -23,26 +23,15 @@ let redraw = true;
 let ship = {
   initSpeed: 0.001
 }
+let train = {
+  initSpeed: 0.003
+}
 let cars = [];
 let plane = {};
 let images = [];
 let knowMoreTimeoutId;
-
-for(let r = 0; r < vMap.length; r++){
-  for(let c = 0; c < vMap[r].length; c++){
-    vMap[r][c] = { id: vMap[r][c], blendFrame: parseInt(-Math.random() * 60), clickFrame: effectSpeed };
-  }
-}
-
-for(let r = 0; r < hMap.length; r++){
-  for(let c = 0; c < hMap[r].length; c++){
-    hMap[r][c] = { id: hMap[r][c], blendFrame: parseInt(-Math.random() * 60), clickFrame: effectSpeed };
-  }
-}
-
-switchAspect();
-const canvas = document.getElementById('content');
-canvas.style.backgroundColor = "white";
+let knowMoreShow;
+let simRunning = true;
 
 await LoadImage('images/empty.png', 0);
 await LoadImage('images/knowMore.png', 100);
@@ -53,6 +42,30 @@ await Promise.all(
 
 document.getElementById('loader').classList.add("fade-out");
 setTimeout(function() { document.getElementById('loader').style.display = 'none'; continueBlendingIn(); }, 500);
+
+for(let r = 0; r < vMap.length; r++){
+  for(let c = 0; c < vMap[r].length; c++){
+    vMap[r][c] = {
+      id: vMap[r][c],
+      blendFrame: parseInt(-Math.random() * 60),
+      clickFrame: effectSpeed
+    };
+  }
+}
+
+for(let r = 0; r < hMap.length; r++){
+  for(let c = 0; c < hMap[r].length; c++){
+    hMap[r][c] = {
+      id: hMap[r][c],
+      blendFrame: parseInt(-Math.random() * 60),
+      clickFrame: effectSpeed
+    };
+  }
+}
+
+switchAspect();
+const canvas = document.getElementById('content');
+canvas.style.backgroundColor = "white";
 
 setInterval(() => {
   draw();
@@ -72,7 +85,9 @@ canvas.onmouseup = (event) => {
     const tile = getObjectFromScreen(event.x, event.y);
     if(tile){
       const img = images.find((img) => { return img.id == "img" + tile.id });
-       if(img.src.indexOf("text_") == -1 && img.src.indexOf("branza_") == -1) return;
+      if(!img.isText && !img.isSector) {
+        selectedGroup = undefined;
+      }
       startClick(tile);
       startColorize(tile);
       redraw = true;
@@ -81,6 +96,15 @@ canvas.onmouseup = (event) => {
 }
 
 canvas.onmousemove = (event) => {
+  const tile = getObjectFromScreen(event.x, event.y);
+  if(tile){
+    const img = images.find((img) => { return img.id == "img" + tile.id });
+    if(img && (img.isText || img.isSector))
+      canvas.style.cursor = "pointer";
+    else
+      canvas.style.cursor = "default";
+  }else canvas.style.cursor = "default";
+
   if(!mouseDown) return;
   if(lastMousePos.x == event.x && lastMousePos.y == event.y) return;
 
@@ -117,51 +141,56 @@ function startColorize(tile){
   const img = images.find((img) => { return img.id == "img" + tile.id });
   if(!img) return;
 
-  if(img.src.indexOf("text_") == -1 && img.src.indexOf("branza_") == -1) return;
+  if(!img.isText && !img.isSector) return;
   previousGroup = selectedGroup;
-  if(img.src.indexOf("text_") != -1)
+  if(img.isText)
     selectedGroup = parseInt(img.src.substring(img.src.indexOf("text_") + 5, img.src.lastIndexOf(".")));
   else{
     selectedGroup = parseInt(img.src.substring(img.src.indexOf("branza_") + 7, img.src.lastIndexOf(".")));
   }
   frame = 0;
-  continueColorize();
+  continueColorize(tile);
 }
 
-function continueColorize(){
+function continueColorize(tile){
   frame++;
   redraw = true;
 
   if(frame < effectSpeed - 1){
-    setTimeout(() => { continueColorize(); }, 1000 / 60);
+    setTimeout(() => { continueColorize(tile); }, 1000 / 60);
   }else{
-    startMoreFrame();
+    knowMoreShow = false;
+    startMoreFrame(tile);
   }
 }
 
-function startMoreFrame(){
+function startMoreFrame(tile){
   moreFrame = 0;
   moreFrameDir = 1;
-  knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(); }, knowMoreSpeed);
+  //tile.clickFrame = effectSpeed;
+  knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(tile); }, knowMoreSpeed);
 }
 
 function stopMoreFrame(){
   moreFrame = 0;
+  knowMoreShow = false;
   if(knowMoreTimeoutId) clearTimeout(knowMoreTimeoutId);
   knowMoreTimeoutId = undefined;
 }
 
-function continueMoreFrame(){
+function continueMoreFrame(tile){
   moreFrame += moreFrameDir;
+  //tile.clickFrame -= moreFrameDir;
   redraw = true;
 
-  if(moreFrame == effectSpeed * 2 - 1){
+  if(moreFrame == effectSpeed - 1){
     moreFrameDir = -1;
-    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(); }, knowMoreSpeed);
+    knowMoreShow = !knowMoreShow;
+    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(tile); }, 1000 / 60);
   }else if(moreFrame != 0){
-    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(); }, 1000 / 60);
+    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(tile); }, 1000 / 60);
   }else{
-    startMoreFrame();
+    startMoreFrame(tile);
   }
 }
 
@@ -267,6 +296,7 @@ function switchAspect() {
   cars = [];
   delete plane.pos;
   stopMoreFrame();
+  delete train.pos;
 }
 
 function onWindowResize() {
@@ -285,31 +315,38 @@ function draw(){
     ctx.fillStyle = canvas.style.backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    const img0 = images.find((img) => { return img.id == "img0" });
+    const knowMoreImg = images.find((img) => { return img.id == "img100" });
+
     for(let r = 0; r < map.length; r++){
       for(let c = 0; c < map[r].length; c++){
         let img = images.find((img) => { return img.id == "img" + map[r][c].id });
-
+        const isSelectedGroup = selectedGroup ? img.src.indexOf("_" + selectedGroup) != -1 : false;
+        let clickFrame = isSelectedGroup && knowMoreTimeoutId ? moreFrame : map[r][c].clickFrame;
+        
         if(!img || map[r][c].blendFrame < effectSpeed - 1){
-          let img0 = images.find((img) => { return img.id == "img0" });
           drawTile(ctx, r, c, img0, 10);
           if(!img) continue;
         }
-        
+
+        if(img.isText){
+          drawTile(ctx, r, c, img0, clickFrame);
+          if(isSelectedGroup && knowMoreShow) img = knowMoreImg;
+        }
+
         if(map[r][c].blendFrame < 1) continue;
         if(map[r][c].blendFrame < effectSpeed - 1) {
           img = img.blended[map[r][c].blendFrame - 1];
         }else
           if(selectedGroup){
-            if(img.src.indexOf("_" + selectedGroup) != -1){
-              if(img.src.indexOf("text_") != -1 && moreFrame > 0){
-                img = img.more[moreFrame - 1];
-              }else img = img.colorized[frame - 1];
+            if(isSelectedGroup){
+              img = img.colorized[frame - 1];
             }else if(previousGroup && img.src.indexOf("_" + previousGroup) != -1 && frame < effectSpeed - 1){
               img = img.colorized[effectSpeed - frame - 2];
             }else img = img.blended[5];
           }
 
-        drawTile(ctx, r, c, img, map[r][c].clickFrame);
+        drawTile(ctx, r, c, img, clickFrame);
       }
     }
     redraw = false;
@@ -320,7 +357,8 @@ function draw(){
 
   drawShip(mainCtx);
   drawCars(mainCtx);
-  drawPlane(mainCtx);
+  drawTrain(mainCtx);
+  drawPlane(mainCtx);  
 }
 
 function drawTile(ctx, r, c, img, clickFrame){
@@ -376,15 +414,76 @@ function addCar(){
 
   if(car.speed > 0){
     car.img = images.find((img) => { return img.id == "img" + (47 + r) });
-    car.pos = map == vMap ? getScreenPositionFromGrid(0.58, 4.1) : getScreenPositionFromGrid(0.58, 3.1);
+    car.pos = map == vMap ? getScreenPositionFromGrid(0.58, 4.1) : getScreenPositionFromGrid(0.6, 2.1);
   }else{
     car.img = images.find((img) => { return img.id == "img" + (50 + r) });
     car.pos = map == vMap ? getScreenPositionFromGrid(3.75, 10.8) : getScreenPositionFromGrid(2.75, 7.2);
   }
 
-  if(car.img) cars.push(car);
+  if(car.img && simRunning){
+    cars.push(car);
+  }
 
   setTimeout(addCar, 500 + Math.random() * 2000);
+}
+
+function drawTrain(ctx){
+  let img57 = images.find((img) => { return img.id == "img57" });
+  let img58 = images.find((img) => { return img.id == "img58" });
+  if(!img57 || !img58) return;
+
+  if(!train.pos){
+    if(map == vMap){
+      train.pos = getScreenPositionFromGrid(-0.15, 12.8);
+      train.breakPoint = 0.35;
+      train.dir = { x: 1, y: 1},
+      train.img = img57;
+    }else{
+      train.pos = getScreenPositionFromGrid(7.3, 2.42);
+      train.breakPoint = 0.79;
+      train.dir = { x: -1, y: 1},
+      train.img = img58;
+    }
+
+    train.speed = train.initSpeed;
+    train.loaded = false;
+  }
+
+  train.pos.x += tileWidth * train.speed * train.dir.x;
+  train.pos.y += tileHeight * train.speed * train.dir.y;
+
+  let x = offsetX + train.pos.x;
+  let y = offsetY + train.pos.y;
+  let w = train.img.width * tileWidth / 280;
+  let h = train.img.height * w / train.img.width;
+
+  ctx.drawImage(train.img, x, y - h, w, h);
+
+  if((train.dir.x > 0 && x > canvas.width) || y - h > canvas.height){
+     delete train.pos;
+     return;
+  }
+
+  if(!train.loaded){
+    if(train.speed > 0) {
+      if((train.dir.x > 0 && x > canvas.width * train.breakPoint)
+        || (train.dir.x < 0 && x < canvas.width * train.breakPoint)){
+        train.speed -= train.initSpeed * 0.0035;
+        if(train.speed <= 0){
+          setTimeout(() => {
+            train.loaded = true;
+            if(map == hMap){
+              train.dir = { x: 1, y: -1};
+            }
+          }, 5000);
+        }
+      }
+    }
+  }else{
+    if(train.speed < train.initSpeed){
+      train.speed += train.initSpeed * 0.0035;
+    }
+  }
 }
 
 function drawShip(ctx){
@@ -476,8 +575,6 @@ function getScreenPositionFromGrid(x, y){
 function colorize(image, r, g, b, frames) {
   image.colorized = [];
 
-  const inverse = image.src.indexOf("text_") != -1 || image.src.indexOf("knowMore") != -1;
-
   const oc = new OffscreenCanvas(image.width, image.height);
   const srcImageCtx = oc.getContext("2d");  
   srcImageCtx.drawImage(image, 0, 0);
@@ -498,9 +595,7 @@ function colorize(image, r, g, b, frames) {
     for (let i = 0, l = 0; i < srcImageData.data.length; i += 4, l++) {
       let lightness = lightMap[l];
       let w = (255 - lightness) / 255;
-      if(inverse){
-        if(lightness < 200) w = 0; else w = 1 - w;
-      }
+      if(image.isText) w = 1 - w;
       const aw = a * w;
 
       dstImageData.data[i + 0] = srcImageData.data[i] + (lightness * r - srcImageData.data[i]) * aw;
@@ -538,23 +633,19 @@ function blend(image, frames) {
   }
 }
 
-function knowMore(image, frames) {
-  image.more = [];
-  const knowMoreImg = images.find((img) => { return img.id == "img100" });
+// function knowMore(image, frames) {
+//   image.more = [];
+//   const knowMoreImg = images.find((img) => { return img.id == "img100" });
 
-  for(let f = 1; f < frames * 2; f++){
-    const offscreen = new OffscreenCanvas(image.width, image.height);
-    const ctx = offscreen.getContext("2d");
+//   for(let f = 1; f < frames * 2 - 1; f++){
+//     const offscreen = new OffscreenCanvas(image.width, image.height);
+//     const ctx = offscreen.getContext("2d");
 
-    let w = image.width * (frames - f - 1) / frames;
+//     ctx.drawImage(f < frames ? image.colorized[f - 1] : knowMoreImg.colorized[f - frames], 0, 0, image.width, image.height);
 
-    let x = image.width / 2 - w / 2;
-    
-    ctx.drawImage(w > 0 ? image.colorized[8] : knowMoreImg.colorized[8], x, 0, w, image.height);
-
-    image.more.push(offscreen);
-  }
-}
+//     image.more.push(offscreen);
+//   }
+// }
 
 function checkLine(p1, p2){
   return (x) => { return (p2[1] - p1[1]) / (p2[0] - p1[0]) * x + (p2[1] * p1[0] - p1[1] * p2[0]) / (p1[0] - p2[0]) }
@@ -589,12 +680,14 @@ function LoadImage(src, id) {
   return new Promise(function (resolve) {
     const img = new Image();
     img.onload = () => {
-      if(img.src.indexOf("branza_") != -1 || img.src.indexOf("text_") != -1 || img.src.indexOf("knowMore") != -1){
-        if(img.src.indexOf("branza_") != -1)
+      img.isText = img.src.indexOf("text_") != -1 || img.src.indexOf("knowMore") != -1;
+      img.isSector = img.src.indexOf("branza_") != -1;
+      if(img.isText || img.isSector){
+        if(img.isSector)
           colorize(img, 0, 0.8, 1, effectSpeed);
         else
           colorize(img, 0, 0.5, 1, effectSpeed);
-        if(img.src.indexOf("text_") != -1) knowMore(img, effectSpeed);
+        //if(img.src.indexOf("text_") != -1) knowMore(img, effectSpeed);
       }
       blend(img, effectSpeed);
       images.push(img);
@@ -605,8 +698,16 @@ function LoadImage(src, id) {
     }
     img.draggable = "false";
     img.id = "img" + id;
-    img.src = src;// + '?v=' + parseInt(Math.random() * 1000000);
+    img.src = src + '?v=20250807.1';
   });
 }
 
 window.addEventListener('resize', onWindowResize, false );
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    simRunning = false;
+  } else {
+    simRunning = true;
+  }
+});

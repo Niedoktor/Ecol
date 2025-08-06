@@ -53,5 +53,7 @@ const imageFiles = [
   { file: 'images/samolot_ur.png', id: 53 },
   { file: 'images/samolot_dr.png', id: 54 },
   { file: 'images/samolot_dl.png', id: 55 },
-  { file: 'images/samolot_ul.png', id: 56 }
+  { file: 'images/samolot_ul.png', id: 56 },
+  { file: 'images/pociag.png', id: 57 },
+  { file: 'images/pociag_m.png', id: 58 }
 ]
