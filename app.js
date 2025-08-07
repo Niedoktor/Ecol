@@ -185,9 +185,9 @@ function continueMoreFrame(tile){
   if(moreFrame == effectSpeed - 1){
     moreFrameDir = -1;
     knowMoreShow = !knowMoreShow;
-    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(tile); }, 1000 / fps);
+    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(tile); }, 1000 / fps * 2);
   }else if(moreFrame != 0){
-    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(tile); }, 1000 / fps);
+    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(tile); }, 1000 / fps * 2);
   }else{
     knowMoreTimeoutId = setTimeout(() => { startMoreFrame(tile); }, knowMoreSpeed);
   }
@@ -342,7 +342,8 @@ function draw(){
               img = img.colorized[frame - 1];
             }else if(previousGroup && img.src.indexOf("_" + previousGroup) != -1 && frame < effectSpeed - 1){
               img = img.colorized[effectSpeed - frame - 2];
-            }else img = img.blended[5];
+            }else
+              if(map[r][c].id != 0) img = img.blended[5];
           }
 
         drawTile(ctx, r, c, img, clickFrame);
