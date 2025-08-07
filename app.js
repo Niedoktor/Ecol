@@ -3,6 +3,7 @@ const borderSize = 0.5;
 const effectSpeed = 10;
 const offScreenCanvas = new OffscreenCanvas(0, 0);
 const knowMoreSpeed = 3000;
+const fps = 60;
 
 let aspect;
 let tileWidth;
@@ -69,7 +70,7 @@ canvas.style.backgroundColor = "white";
 
 setInterval(() => {
   draw();
-}, 1000 / 60);
+}, 1000 / fps);
 
 addCar();
 
@@ -129,9 +130,9 @@ function continueClick(tile){
   redraw = true;
 
   if(tile.clickFrame < effectSpeed){
-    setTimeout(() => { continueClick(tile); }, 1000 / 60);
+    setTimeout(() => { continueClick(tile); }, 1000 / fps);
   }else{
-    if(previousGroup === selectedGroup){
+    if(selectedGroup && previousGroup === selectedGroup){
       window.open(links[selectedGroup], "blank");
     }
   }
@@ -157,18 +158,17 @@ function continueColorize(tile){
   redraw = true;
 
   if(frame < effectSpeed - 1){
-    setTimeout(() => { continueColorize(tile); }, 1000 / 60);
+    setTimeout(() => { continueColorize(tile); }, 1000 / fps);
   }else{
     knowMoreShow = false;
-    startMoreFrame(tile);
+    knowMoreTimeoutId = setTimeout(() => { startMoreFrame(tile); }, knowMoreSpeed / 4);
   }
 }
 
 function startMoreFrame(tile){
   moreFrame = 0;
   moreFrameDir = 1;
-  //tile.clickFrame = effectSpeed;
-  knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(tile); }, knowMoreSpeed);
+  continueMoreFrame(tile);
 }
 
 function stopMoreFrame(){
@@ -180,17 +180,16 @@ function stopMoreFrame(){
 
 function continueMoreFrame(tile){
   moreFrame += moreFrameDir;
-  //tile.clickFrame -= moreFrameDir;
   redraw = true;
 
   if(moreFrame == effectSpeed - 1){
     moreFrameDir = -1;
     knowMoreShow = !knowMoreShow;
-    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(tile); }, 1000 / 60);
+    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(tile); }, 1000 / fps);
   }else if(moreFrame != 0){
-    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(tile); }, 1000 / 60);
+    knowMoreTimeoutId = setTimeout(() => { continueMoreFrame(tile); }, 1000 / fps);
   }else{
-    startMoreFrame(tile);
+    knowMoreTimeoutId = setTimeout(() => { startMoreFrame(tile); }, knowMoreSpeed);
   }
 }
 
@@ -218,7 +217,7 @@ function continueBlendingIn(){
 
   if(!finish){
     redraw = true;
-    setTimeout(() => { continueBlendingIn(); }, 1000 / 60);
+    setTimeout(() => { continueBlendingIn(); }, 1000 / fps);
   }else{
     undefined;
   }
@@ -248,7 +247,7 @@ function continueBlendingOut(){
   redraw = true;
 
   if(!finish){
-    setTimeout(() => { continueBlendingOut(); }, 1000 / 60);
+    setTimeout(() => { continueBlendingOut(); }, 1000 / fps);
   }else{
     switchAspect();
     if(selectedGroup) selectedGroup = undefined;
@@ -686,7 +685,10 @@ function LoadImage(src, id) {
         if(img.isSector)
           colorize(img, 0, 0.8, 1, effectSpeed);
         else
-          colorize(img, 0, 0.5, 1, effectSpeed);
+          if(img.src.indexOf("knowMore") != -1)
+            colorize(img, 1, 0, 0, effectSpeed);
+          else
+            colorize(img, 0, 0.5, 1, effectSpeed);
         //if(img.src.indexOf("text_") != -1) knowMore(img, effectSpeed);
       }
       blend(img, effectSpeed);
