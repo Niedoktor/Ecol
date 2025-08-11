@@ -321,32 +321,32 @@ function draw(){
       for(let c = 0; c < map[r].length; c++){
         let img = images.find((img) => { return img.id == "img" + map[r][c].id });
         const isSelectedGroup = selectedGroup ? img.src.indexOf("_" + selectedGroup) != -1 : false;
+        const isPreviousGroup = previousGroup ? img.src.indexOf("_" + previousGroup) != -1 : false;
         let clickFrame = isSelectedGroup && knowMoreTimeoutId ? moreFrame : map[r][c].clickFrame;
-        
-        if(!img || map[r][c].blendFrame < effectSpeed - 1){
-          drawTile(ctx, r, c, img0, 10);
+        let colorizeFrame = effectSpeed;
+        let blendFrame = map[r][c].blendFrame;
+
+        if(isSelectedGroup){
+          colorizeFrame = frame - 1;
+        }else if(isPreviousGroup && frame < effectSpeed - 1){
+          colorizeFrame = effectSpeed - frame - 2;
+        }
+
+        if(!img) {
+          drawTile(ctx, r, c, img0, effectSpeed);
           if(!img) continue;
         }
 
         if(img.isText){
-          drawTile(ctx, r, c, img0, clickFrame);
-          if(isSelectedGroup && knowMoreShow) img = knowMoreImg;
+          drawTile(ctx, r, c, img0, clickFrame, colorizeFrame);
+          colorizeFrame = effectSpeed;
+          if(isSelectedGroup){
+            if(knowMoreShow) img = knowMoreImg;
+            if(knowMoreTimeoutId && moreFrame > 0) blendFrame = effectSpeed - moreFrame - 1;
+          }
         }
 
-        if(map[r][c].blendFrame < 1) continue;
-        if(map[r][c].blendFrame < effectSpeed - 1) {
-          img = img.blended[map[r][c].blendFrame - 1];
-        }else
-          if(selectedGroup){
-            if(isSelectedGroup){
-              img = img.colorized[frame - 1];
-            }else if(previousGroup && img.src.indexOf("_" + previousGroup) != -1 && frame < effectSpeed - 1){
-              img = img.colorized[effectSpeed - frame - 2];
-            }else
-              if(map[r][c].id != 0) img = img.blended[5];
-          }
-
-        drawTile(ctx, r, c, img, clickFrame);
+        drawTile(ctx, r, c, img, clickFrame, colorizeFrame, blendFrame);
       }
     }
     redraw = false;
@@ -361,7 +361,9 @@ function draw(){
   drawPlane(mainCtx);  
 }
 
-function drawTile(ctx, r, c, img, clickFrame){
+function drawTile(ctx, r, c, img, clickFrame, colorizeFrame, blendFrame){
+  if(map[r][c].blendFrame < 1) return;
+
   let imgWidth = tileWidth;
   let imgHeight = img.height * imgWidth / img.width;
   let x = offsetX + borderSize + c * (tileWidth + borderSize * 2) + r % 2 * (tileWidth / 2 + borderSize);
@@ -379,6 +381,16 @@ function drawTile(ctx, r, c, img, clickFrame){
     imgHeight -= imgHeight * downSize;
   }
 
+  if(blendFrame < effectSpeed - 1) {
+    img = img.blended[blendFrame - 1];
+  }else
+  if(selectedGroup){
+    if(colorizeFrame < effectSpeed - 1){
+      img = img.colorized[colorizeFrame];
+    }else
+      if(map[r][c].id != 0) img = img.blended[5];
+  }
+  
   ctx.drawImage(img, x, y - imgHeight, imgWidth, imgHeight);
 }
 
@@ -682,21 +694,10 @@ function LoadImage(src, id) {
     img.onload = () => {
       img.isText = img.src.indexOf("text_") != -1 || img.src.indexOf("knowMore") != -1;
       img.isSector = img.src.indexOf("branza_") != -1;
-      if(img.isText || img.isSector){
-        if(img.isSector)
-          colorize(img, 0, 0.8, 1, effectSpeed);
-        else
-          if(img.src.indexOf("knowMore") != -1)
-            colorize(img, 1, 0, 0, effectSpeed);
-          else
-            colorize(img, 0, 0.5, 1, effectSpeed);
-        //if(img.src.indexOf("text_") != -1) knowMore(img, effectSpeed);
-      }
+      if(!img.isText) colorize(img, 0, 0.8, 1, effectSpeed);
       blend(img, effectSpeed);
       images.push(img);
       document.getElementById("loader").innerText = `${images.length} / ${imageFiles.length + 2}`;
-      // redraw = true;
-      // draw();
       resolve(img);
     }
     img.draggable = "false";
