@@ -12,7 +12,8 @@ let offsetX;
 let offsetY;
 let selectedGroup;
 let previousGroup;
-let frame;
+let hoverTile;
+let previousTile;
 let moreFrame;
 let moreFrameDir;
 let map;
@@ -49,7 +50,8 @@ for(let r = 0; r < vMap.length; r++){
     vMap[r][c] = {
       id: vMap[r][c],
       blendFrame: parseInt(-Math.random() * 60),
-      clickFrame: effectSpeed
+      clickFrame: effectSpeed,
+      colorFrame: 0
     };
   }
 }
@@ -59,7 +61,8 @@ for(let r = 0; r < hMap.length; r++){
     hMap[r][c] = {
       id: hMap[r][c],
       blendFrame: parseInt(-Math.random() * 60),
-      clickFrame: effectSpeed
+      clickFrame: effectSpeed,
+      colorFrame: 0
     };
   }
 }
@@ -90,7 +93,6 @@ canvas.onmouseup = (event) => {
         selectedGroup = undefined;
       }
       startClick(tile);
-      startColorize(tile);
       redraw = true;
     }
   }
@@ -105,6 +107,8 @@ canvas.onmousemove = (event) => {
     else
       canvas.style.cursor = "default";
   }else canvas.style.cursor = "default";
+
+  hover(tile);
 
   if(!mouseDown) return;
   if(lastMousePos.x == event.x && lastMousePos.y == event.y) return;
@@ -122,6 +126,23 @@ canvas.onmousemove = (event) => {
 function startClick(tile){
   tile.clickFrame = 0;
   stopMoreFrame();
+
+  const img = images.find((img) => { return img.id == "img" + tile.id });
+  if(!img) return;
+
+  if(!img.isText && !img.isSector) return;
+  previousGroup = selectedGroup;
+  selectedGroup = img.group;
+
+  for(let r = 0; r < map.length; r++){
+    for(let c = 0; c < map[r].length; c++){
+      let img = images.find((img) => { return img.id == "img" + map[r][c].id });
+      if(img && img.group && (img.group == selectedGroup || img.group == previousGroup)){
+        startColorize(map[r][c]);
+      }
+    }
+  }
+
   continueClick(tile);
 }
 
@@ -134,34 +155,42 @@ function continueClick(tile){
   }else{
     if(selectedGroup && previousGroup === selectedGroup){
       window.open(links[selectedGroup], "blank");
+    }else{
+      knowMoreShow = false;
+      knowMoreTimeoutId = setTimeout(() => { startMoreFrame(tile); }, knowMoreSpeed / 4);
     }
   }
 }
 
-function startColorize(tile){
-  const img = images.find((img) => { return img.id == "img" + tile.id });
-  if(!img) return;
+function hover(tile){
+  if(tile == hoverTile) return;
 
-  if(!img.isText && !img.isSector) return;
-  previousGroup = selectedGroup;
-  if(img.isText)
-    selectedGroup = parseInt(img.src.substring(img.src.indexOf("text_") + 5, img.src.lastIndexOf(".")));
-  else{
-    selectedGroup = parseInt(img.src.substring(img.src.indexOf("branza_") + 7, img.src.lastIndexOf(".")));
+  if(hoverTile){
+    previousTile = hoverTile;
+    startColorize(hoverTile);
+    hoverTile = undefined;
   }
-  frame = 0;
+
+  if(tile){
+    const img = images.find((img) => { return img.id == "img" + tile.id });
+    if(img && img.group && (img.group == selectedGroup || img.group == previousGroup)) return;
+
+    hoverTile = tile;
+    startColorize(tile);
+  }
+}
+
+function startColorize(tile){
+  tile.colorFrame = 0;
   continueColorize(tile);
 }
 
 function continueColorize(tile){
-  frame++;
+  tile.colorFrame++;
   redraw = true;
 
-  if(frame < effectSpeed - 1){
+  if(tile.colorFrame < effectSpeed - 1){
     setTimeout(() => { continueColorize(tile); }, 1000 / fps);
-  }else{
-    knowMoreShow = false;
-    knowMoreTimeoutId = setTimeout(() => { startMoreFrame(tile); }, knowMoreSpeed / 4);
   }
 }
 
@@ -320,16 +349,19 @@ function draw(){
     for(let r = 0; r < map.length; r++){
       for(let c = 0; c < map[r].length; c++){
         let img = images.find((img) => { return img.id == "img" + map[r][c].id });
-        const isSelectedGroup = selectedGroup ? img.src.indexOf("_" + selectedGroup) != -1 : false;
-        const isPreviousGroup = previousGroup ? img.src.indexOf("_" + previousGroup) != -1 : false;
+        const isSelectedGroup = img.group && selectedGroup && selectedGroup == img.group;
+        const isHovered = hoverTile && hoverTile == map[r][c];
+        const isPreviousGroup = previousGroup && img.group && previousGroup == img.group;
+        const wasHovered = previousTile && previousTile == map[r][c];
         let clickFrame = isSelectedGroup && knowMoreTimeoutId ? moreFrame : map[r][c].clickFrame;
         let colorizeFrame = effectSpeed;
         let blendFrame = map[r][c].blendFrame;
+        let colorFrame = map[r][c].colorFrame;
 
-        if(isSelectedGroup){
-          colorizeFrame = frame - 1;
-        }else if(isPreviousGroup && frame < effectSpeed - 1){
-          colorizeFrame = effectSpeed - frame - 2;
+        if(isSelectedGroup || isHovered){
+          colorizeFrame = colorFrame - 1;
+        }else if((isPreviousGroup || wasHovered) && colorFrame < effectSpeed - 1){
+          colorizeFrame = effectSpeed - colorFrame - 2;
         }
 
         if(!img) {
@@ -384,11 +416,11 @@ function drawTile(ctx, r, c, img, clickFrame, colorizeFrame, blendFrame){
   if(blendFrame < effectSpeed - 1) {
     img = img.blended[blendFrame - 1];
   }else
-  if(selectedGroup){
+  if(selectedGroup || hoverTile){
     if(colorizeFrame < effectSpeed - 1){
       img = img.colorized[colorizeFrame];
     }else
-      if(map[r][c].id != 0) img = img.blended[5];
+      if(selectedGroup && map[r][c].id != 0) img = img.blended[5];
   }
   
   ctx.drawImage(img, x, y - imgHeight, imgWidth, imgHeight);
@@ -694,6 +726,8 @@ function LoadImage(src, id) {
     img.onload = () => {
       img.isText = img.src.indexOf("text_") != -1 || img.src.indexOf("knowMore") != -1;
       img.isSector = img.src.indexOf("branza_") != -1;
+      if(img.src.indexOf("text_") != -1) img.group = parseInt(img.src.substring(img.src.indexOf("text_") + 5, img.src.lastIndexOf(".")));
+      if(img.isSector) img.group = parseInt(img.src.substring(img.src.indexOf("branza_") + 7, img.src.lastIndexOf(".")));
       if(!img.isText) colorize(img, 0, 0.8, 1, effectSpeed);
       blend(img, effectSpeed);
       images.push(img);
